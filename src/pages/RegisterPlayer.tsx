@@ -9,9 +9,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Upload } from "lucide-react";
+import { ArrowLeft, Copy, Download } from "lucide-react";
 import clubLogo from "@/assets/club-logo.png";
+import { paymentConfig } from "@/config/payment";
+import { panchayats } from "@/config/panchayats";
+import { registrationAPI } from "@/lib/api";
 
 const playerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").max(100),
@@ -19,99 +21,173 @@ const playerSchema = z.object({
   phone: z.string().min(10, "Phone number must be at least 10 digits").max(15),
   role: z.enum(["bat", "ball", "wk", "all-rounder"]),
   place: z.string().min(2, "Place must be at least 2 characters").max(100),
+  panchayat: z.string().min(1, "Please select your Panchayat"),
+  id_proof_type: z.enum(["aadhar", "driving_license", "voter_id", "passport"]).optional(),
 });
 
 type PlayerFormData = z.infer<typeof playerSchema>;
 
 const RegisterPlayer = () => {
   const navigate = useNavigate();
-  const [playerImage, setPlayerImage] = useState<File | null>(null);
-  const [idProof, setIdProof] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [playerImageFile, setPlayerImageFile] = useState<File | null>(null);
+  const [playerImageFileName, setPlayerImageFileName] = useState<string | null>(null);
+  const [paymentScreenshotFile, setPaymentScreenshotFile] = useState<File | null>(null);
+  const [paymentFileName, setPaymentFileName] = useState<string | null>(null);
+  const [idProofFile, setIdProofFile] = useState<File | null>(null);
+  const [idProofFileName, setIdProofFileName] = useState<string | null>(null);
 
-  const { register, handleSubmit, formState: { errors }, setValue } = useForm<PlayerFormData>({
+  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<PlayerFormData>({
     resolver: zodResolver(playerSchema),
   });
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'player' | 'id') => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("File size must be less than 5MB");
-        return;
+  const roleValue = watch("role");
+  const panchayatValue = watch("panchayat");
+  const idProofTypeValue = watch("id_proof_type");
+
+  const handleCopy = async (value: string, label: string) => {
+    try {
+      if (!navigator?.clipboard?.writeText) {
+        throw new Error("Clipboard unavailable");
       }
-      if (type === 'player') {
-        setPlayerImage(file);
-      } else {
-        setIdProof(file);
-      }
+      await navigator.clipboard.writeText(value);
+      toast.success(`${label} copied`);
+    } catch (error) {
+      console.error("Copy failed", error);
+      toast.error("Unable to copy. Please copy manually.");
     }
   };
 
-  const uploadFile = async (file: File, bucket: string): Promise<string | null> => {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Math.random()}.${fileExt}`;
-    const filePath = `${fileName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from(bucket)
-      .upload(filePath, file);
-
-    if (uploadError) {
-      console.error('Upload error:', uploadError);
-      return null;
+  const handlePlayerImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      setPlayerImageFile(null);
+      setPlayerImageFileName(null);
+      return;
     }
 
-    const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
-    return data.publicUrl;
+    const validFormats = ['image/jpeg', 'image/png', 'image/jpg'];
+    if (!validFormats.includes(file.type)) {
+      toast.error("Player photo must be an image (JPG, PNG)");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Player photo must be less than 5MB");
+      return;
+    }
+
+    setPlayerImageFile(file);
+    setPlayerImageFileName(file.name);
+  };
+
+  const handlePaymentScreenshotChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      setPaymentScreenshotFile(null);
+      setPaymentFileName(null);
+      return;
+    }
+
+    const validFormats = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+    if (!validFormats.includes(file.type)) {
+      toast.error("Payment screenshot must be an image (JPG, PNG) or PDF");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Payment screenshot must be less than 10MB");
+      return;
+    }
+
+    setPaymentScreenshotFile(file);
+    setPaymentFileName(file.name);
+  };
+
+  const handleIdProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      setIdProofFile(null);
+      setIdProofFileName(null);
+      return;
+    }
+
+    const validFormats = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+    if (!validFormats.includes(file.type)) {
+      toast.error("ID proof must be a PDF or image file (JPG, PNG)");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("ID proof must be less than 10MB");
+      return;
+    }
+
+    setIdProofFile(file);
+    setIdProofFileName(file.name);
   };
 
   const onSubmit = async (data: PlayerFormData) => {
     setIsSubmitting(true);
 
+    if (!playerImageFile) {
+      toast.error("Please upload your photo before submitting.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!paymentScreenshotFile) {
+      toast.error("Please upload the payment screenshot before submitting.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (data.id_proof_type && !idProofFile) {
+      toast.error("Please upload your ID proof document.");
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
-      let imageUrl = null;
-      let idProofUrl = null;
+      const formData = new FormData();
+      formData.append("player_name", data.name);
+      if (data.email) formData.append("email", data.email);
+      formData.append("phone", data.phone);
+      formData.append("role", data.role);
+      formData.append("place", data.place);
+      formData.append("panchayat", data.panchayat);
+      formData.append("player_image", playerImageFile);
+      formData.append("payment_screenshot", paymentScreenshotFile);
 
-      if (playerImage) {
-        imageUrl = await uploadFile(playerImage, 'player-images');
-        if (!imageUrl) {
-          toast.error("Failed to upload player image");
-          setIsSubmitting(false);
-          return;
-        }
+      if (data.id_proof_type && idProofFile) {
+        formData.append("id_proof_type", data.id_proof_type);
+        formData.append("id_proof_file", idProofFile);
       }
 
-      if (idProof) {
-        idProofUrl = await uploadFile(idProof, 'id-proofs');
-        if (!idProofUrl) {
-          toast.error("Failed to upload ID proof");
-          setIsSubmitting(false);
-          return;
-        }
-      }
+      await registrationAPI.createRegistrationWithFile(formData);
+      toast.success("Registration submitted successfully! Please wait for approval.");
 
-      const { error } = await supabase
-        .from('players')
-        .insert([
-          {
-            name: data.name,
-            email: data.email || null,
-            phone: data.phone,
-            role: data.role,
-            place: data.place,
-            image_url: imageUrl,
-            id_proof_url: idProofUrl,
-          },
-        ]);
+      // Store locally as well for reference
+      localStorage.setItem("cvcl-latest-registration", JSON.stringify({
+        player_name: data.name,
+        email: data.email,
+        phone: data.phone,
+        role: data.role,
+        place: data.place,
+        panchayat: data.panchayat,
+        id_proof_type: data.id_proof_type,
+      }));
 
-      if (error) throw error;
-
-      toast.success("Player registered successfully!");
-      navigate("/players");
-    } catch (error) {
-      console.error('Error registering player:', error);
-      toast.error("Failed to register player. Please try again.");
+      setTimeout(() => {
+        navigate("/");
+      }, 1500);
+    } catch (error: any) {
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.response?.data?.detail ||
+        error?.message ||
+        "Registration failed. Please try again.";
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -126,9 +202,9 @@ const RegisterPlayer = () => {
         </Link>
 
         <div className="text-center mb-8">
-          <img src={clubLogo} alt="Club Logo" className="w-24 h-24 mx-auto mb-4" />
+          <img src={clubLogo} alt="Club Logo" className="mx-auto mb-4 "  style={{height:"20vh", objectFit: "cover"}}/>
           <h1 className="text-4xl font-bold text-primary-foreground mb-2">Player Registration</h1>
-          <p className="text-primary-foreground/80">Register for the Calicut Village Cricket League</p>
+          <p className="text-primary-foreground/80">Register for the DPL Season 1</p>
         </div>
 
         <Card className="shadow-card">
@@ -138,6 +214,62 @@ const RegisterPlayer = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              <div className="space-y-4 rounded-lg border p-4 bg-card/40">
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                  <div>
+                    <p className="text-sm font-semibold">Payment Instructions</p>
+                    <p className="text-xs text-muted-foreground">{paymentConfig.note}</p>
+                  </div>
+                  <Button size="sm" variant="ghost" asChild>
+                    <a href={paymentConfig.qrCodeImage} download="cvcl-payment-qr.png">
+                      <Download className="h-4 w-4 mr-2" />
+                      Save QR
+                    </a>
+                  </Button>
+                </div>
+                <div className="flex gap-4 flex-wrap">
+                  <div className="rounded-md bg-background/70 border p-3 flex items-center justify-center">
+                    <img
+                      src={paymentConfig.qrCodeImage}
+                      alt="League Payment QR"
+                      className="w-32 h-32 object-contain"
+                    />
+                  </div>
+                  <div className="flex-1 space-y-3">
+                    <div className="space-y-1">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">UPI ID</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <code className="rounded bg-background px-2 py-1 text-sm">{paymentConfig.upiId}</code>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleCopy(paymentConfig.upiId, "UPI ID")}
+                        >
+                          <Copy className="h-3.5 w-3.5 mr-1" />
+                          Copy
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">GPay Number</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <code className="rounded bg-background px-2 py-1 text-sm">{paymentConfig.gpayNumber}</code>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleCopy(paymentConfig.gpayNumber, "GPay number")}
+                        >
+                          <Copy className="h-3.5 w-3.5 mr-1" />
+                          Copy
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name *</Label>
                 <Input
@@ -177,7 +309,7 @@ const RegisterPlayer = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="role">Player Role *</Label>
-                <Select onValueChange={(value) => setValue("role", value as any)}>
+                <Select value={roleValue} onValueChange={(value) => setValue("role", value as any)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select your role" />
                   </SelectTrigger>
@@ -206,33 +338,114 @@ const RegisterPlayer = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="playerImage">Player Photo</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    id="playerImage"
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleImageChange(e, 'player')}
-                    className="flex-1"
-                  />
-                  {playerImage && <Upload className="h-5 w-5 text-primary" />}
-                </div>
-                <p className="text-xs text-muted-foreground">Max file size: 5MB</p>
+                <Label htmlFor="panchayat">Panchayat *</Label>
+                <Select
+                  value={panchayatValue}
+                  onValueChange={(value) => setValue("panchayat", value as any, { shouldValidate: true })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select your Panchayat" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {panchayats.map((name) => (
+                      <SelectItem key={name} value={name}>
+                        {name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.panchayat && (
+                  <p className="text-sm text-destructive">{errors.panchayat.message}</p>
+                )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="idProof">ID Proof (Aadhar/Voter ID/Driving License/Passport)</Label>
-                <div className="flex items-center gap-2">
+                <Label htmlFor="playerImage">Your Photo *</Label>
+                <Input
+                  id="playerImage"
+                  type="file"
+                  accept="image/jpeg,image/png,image/jpg"
+                  onChange={handlePlayerImageChange}
+                  className="flex-1"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Accepted formats: JPG, PNG (max 5MB). Please upload a clear photo of yourself.
+                </p>
+                {playerImageFileName && (
+                  <p className="text-xs text-muted-foreground">Uploaded: {playerImageFileName}</p>
+                )}
+                {playerImageFile && (
+                  <div className="relative inline-block rounded-md border overflow-hidden mt-2">
+                    <img
+                      src={URL.createObjectURL(playerImageFile)}
+                      alt="Player photo preview"
+                      className="w-32 h-32 object-cover bg-background"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="id_proof_type">ID Proof Type (Optional)</Label>
+                <Select
+                  value={idProofTypeValue}
+                  onValueChange={(value) => setValue("id_proof_type", value as any)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select ID proof type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="aadhar">Aadhar Card</SelectItem>
+                    <SelectItem value="driving_license">Driving License</SelectItem>
+                    <SelectItem value="voter_id">Voter ID</SelectItem>
+                    <SelectItem value="passport">Passport</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.id_proof_type && (
+                  <p className="text-sm text-destructive">{errors.id_proof_type.message}</p>
+                )}
+              </div>
+
+              {idProofTypeValue && (
+                <div className="space-y-2">
+                  <Label htmlFor="idProof">Upload ID Proof ({idProofTypeValue.replace('_', ' ').toUpperCase()}) *</Label>
                   <Input
                     id="idProof"
                     type="file"
-                    accept="image/*,application/pdf"
-                    onChange={(e) => handleImageChange(e, 'id')}
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={handleIdProofChange}
                     className="flex-1"
                   />
-                  {idProof && <Upload className="h-5 w-5 text-primary" />}
+                  <p className="text-xs text-muted-foreground">
+                    Accepted formats: PDF, JPG, PNG (max 10MB)
+                  </p>
+                  {idProofFileName && (
+                    <p className="text-xs text-muted-foreground">Uploaded: {idProofFileName}</p>
+                  )}
                 </div>
-                <p className="text-xs text-muted-foreground">Max file size: 5MB</p>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="paymentProof">Payment Screenshot *</Label>
+                <Input
+                  id="paymentProof"
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={handlePaymentScreenshotChange}
+                  className="flex-1"
+                />
+                {paymentFileName && (
+                  <p className="text-xs text-muted-foreground">Uploaded: {paymentFileName}</p>
+                )}
+                {paymentScreenshotFile && paymentScreenshotFile.type.startsWith('image/') && (
+                  <div className="relative inline-block rounded-md border overflow-hidden mt-2">
+                    <img
+                      src={URL.createObjectURL(paymentScreenshotFile)}
+                      alt="Payment screenshot preview"
+                      className="w-48 h-48 object-contain bg-background"
+                    />
+                  </div>
+                )}
               </div>
 
               <Button 
@@ -242,6 +455,9 @@ const RegisterPlayer = () => {
               >
                 {isSubmitting ? "Registering..." : "Register Player"}
               </Button>
+              <p className="text-xs text-muted-foreground text-center">
+                Note: Registration fee is non-refundable.
+              </p>
             </form>
           </CardContent>
         </Card>

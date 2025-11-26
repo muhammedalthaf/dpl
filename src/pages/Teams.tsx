@@ -3,21 +3,21 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Plus, Trophy, Users, User } from "lucide-react";
+import { ArrowLeft, Plus, Trophy, Loader } from "lucide-react";
 import clubLogo from "@/assets/club-logo.png";
-import TeamForm from "@/components/TeamForm";
-import AddPlayerToTeam from "@/components/AddPlayerToTeam";
+import TeamForm, { TeamFormResult } from "@/components/TeamForm";
+import { teamAPI } from "@/lib/api";
+import { toast } from "sonner";
 
-type Team = {
-  id: string;
+interface Team {
+  _id: string;
   name: string;
   owner_name: string;
   owner_contact: string;
-  owner_details: string | null;
-  icon_url: string | null;
+  owner_details?: string;
+  icon_url?: string;
   created_at: string;
-};
+}
 
 const Teams = () => {
   const [teams, setTeams] = useState<Team[]>([]);
@@ -25,43 +25,75 @@ const Teams = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   useEffect(() => {
+    const fetchTeams = async () => {
+      try {
+        setLoading(true);
+        const data = await teamAPI.getAllTeams(0, 100);
+        setTeams(data.teams || []);
+      } catch (error: any) {
+        toast.error("Failed to load teams");
+        console.error(error);
+        setTeams([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchTeams();
   }, []);
 
-  const fetchTeams = async () => {
+  const handleTeamCreated = async (teamData: TeamFormResult) => {
     try {
-      const { data, error } = await supabase
-        .from('teams')
-        .select('*')
-        .order('created_at', { ascending: false });
+      let apiData: any = {
+        name: teamData.name,
+        owner_name: teamData.owner_name,
+        owner_contact: teamData.owner_contact,
+        owner_details: teamData.owner_details || null,
+      };
 
-      if (error) throw error;
-      setTeams(data || []);
-    } catch (error) {
-      console.error('Error fetching teams:', error);
-    } finally {
-      setLoading(false);
+      let newTeam;
+
+      if (teamData.logo_file) {
+        const formData = new FormData();
+        formData.append("name", teamData.name);
+        formData.append("owner_name", teamData.owner_name);
+        formData.append("owner_contact", teamData.owner_contact);
+        if (teamData.owner_details) {
+          formData.append("owner_details", teamData.owner_details);
+        }
+        formData.append("icon_file", teamData.logo_file);
+
+        newTeam = await teamAPI.createTeamWithLogo(formData);
+      } else {
+        newTeam = await teamAPI.createTeam(apiData);
+      }
+
+      if (newTeam.icon_url || teamData.logo_preview) {
+        newTeam.icon_url = newTeam.icon_url || teamData.logo_preview;
+      }
+
+      setTeams((prev) => [newTeam, ...prev]);
+      setIsDialogOpen(false);
+      toast.success("Team created successfully!");
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.detail || "Failed to create team";
+      toast.error(errorMessage);
     }
-  };
-
-  const handleTeamCreated = () => {
-    setIsDialogOpen(false);
-    fetchTeams();
   };
 
   return (
     <div className="min-h-screen bg-gradient-primary py-12 px-4">
       <div className="container mx-auto">
-        <Link to="/" className="inline-flex items-center text-primary-foreground hover:text-primary-foreground/80 mb-6 transition-colors">
+        <Link to="/admin" className="inline-flex items-center text-primary-foreground hover:text-primary-foreground/80 mb-6 transition-colors">
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Home
+          Back to Admin
         </Link>
 
         <div className="text-center mb-8">
-          <img src={clubLogo} alt="Club Logo" className="w-24 h-24 mx-auto mb-4" />
+          <img src={clubLogo} alt="Club Logo" className="mx-auto mb-4" style={{height:"20vh", objectFit: "cover"}} />
           <h1 className="text-4xl font-bold text-primary-foreground mb-2">Team Management</h1>
           <p className="text-primary-foreground/80">
-            {teams.length} {teams.length === 1 ? 'team' : 'teams'} registered
+            {loading ? "Loading..." : `${teams.length} ${teams.length === 1 ? 'team' : 'teams'} registered`}
           </p>
         </div>
 
@@ -86,7 +118,9 @@ const Teams = () => {
         </div>
 
         {loading ? (
-          <div className="text-center text-primary-foreground">Loading teams...</div>
+          <div className="flex justify-center items-center min-h-96">
+            <Loader className="h-8 w-8 text-primary-foreground animate-spin" />
+          </div>
         ) : teams.length === 0 ? (
           <Card className="max-w-md mx-auto">
             <CardContent className="pt-6 text-center">
@@ -111,19 +145,15 @@ const Teams = () => {
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {teams.map((team) => (
-              <Card key={team.id} className="shadow-card hover:shadow-hover transition-all duration-300">
+              <Card key={team._id} className="shadow-card hover:shadow-hover transition-all duration-300">
                 <CardHeader className="bg-gradient-accent pb-4">
                   <div className="flex items-start gap-4">
                     <div className="w-16 h-16 rounded-full bg-card flex items-center justify-center overflow-hidden shadow-lg">
-                      {team.icon_url ? (
-                        <img 
-                          src={team.icon_url} 
-                          alt={team.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <Trophy className="w-8 h-8 text-muted-foreground" />
-                      )}
+                      <img
+                        src={team.icon_url || clubLogo}
+                        alt={team.name}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                     <div className="flex-1">
                       <CardTitle className="text-xl text-card">{team.name}</CardTitle>
@@ -134,8 +164,7 @@ const Teams = () => {
                   <div>
                     <h4 className="font-semibold text-sm text-muted-foreground mb-2">Team Owner</h4>
                     <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <span className="text-card-foreground">{team.owner_name}</span>
+                      <span className="text-card-foreground font-semibold">{team.owner_name}</span>
                     </div>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-sm text-muted-foreground">Contact:</span>
@@ -145,8 +174,6 @@ const Teams = () => {
                       <p className="text-sm text-muted-foreground mt-2">{team.owner_details}</p>
                     )}
                   </div>
-
-                  <AddPlayerToTeam teamId={team.id} teamName={team.name} />
                 </CardContent>
               </Card>
             ))}

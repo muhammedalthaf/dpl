@@ -1,0 +1,42 @@
+version: "3.8"
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: calcutta_cricket_mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: calcutta_cricket_league
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - cricket_network
+
+  # api:
+  #   build: .
+  #   container_name: calcutta_cricket_api
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8001:8000"
+  #   environment:
+  #     MONGODB_URL: mongodb://admin:password123@mongodb:27017/calcutta_cricket_league?authSource=admin
+  #     DATABASE_NAME: calcutta_cricket_league
+  #     ALLOWED_ORIGINS: '["http://localhost:3000", "http://localhost:5173"]'
+  #   depends_on:
+  #     - mongodb
+  #   volumes:
+  #     - .:/app
+  #   networks:
+  #     - cricket_network
+  #   command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+volumes:
+  mongo_data:
+
+networks:
+  cricket_network:
+    driver: bridge

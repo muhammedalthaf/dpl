@@ -1,0 +1,115 @@
+import { AuctionPlayer, Team, TeamPlayerMap } from "@/types";
+import { auctionConfig } from "@/config/auction";
+import clubLogo from "@/assets/club-logo.png";
+
+export const mockPlayers: AuctionPlayer[] = [
+  {
+    id: "player-1",
+    name: "Akhil Nair",
+    email: "akhil.nair@example.com",
+    phone: "+91 98765 43210",
+    role: "bat",
+    place: "Kozhikode",
+    image_url: null,
+    created_at: "2025-10-01T09:00:00Z",
+    basePrice: auctionConfig.basePrice,
+    auctionStatus: "pending",
+  },
+  {
+    id: "player-2",
+    name: "Faisal Rahman",
+    email: null,
+    phone: "+91 91234 56780",
+    role: "ball",
+    place: "Feroke",
+    image_url: null,
+    created_at: "2025-10-03T11:20:00Z",
+    basePrice: auctionConfig.basePrice,
+    auctionStatus: "pending",
+  },
+  {
+    id: "player-3",
+    name: "Savio Joseph",
+    email: "savioj@example.com",
+    phone: "+91 90000 11223",
+    role: "wk",
+    place: "Beypore",
+    image_url: null,
+    created_at: "2025-10-05T15:45:00Z",
+    basePrice: auctionConfig.basePrice,
+    auctionStatus: "pending",
+  },
+  {
+    id: "player-4",
+    name: "Deepak Pillai",
+    email: "deepak.p@example.com",
+    phone: "+91 97777 88990",
+    role: "all-rounder",
+    place: "Kunnamangalam",
+    image_url: null,
+    created_at: "2025-10-08T08:30:00Z",
+    basePrice: auctionConfig.basePrice,
+    auctionStatus: "pending",
+  },
+  {
+    id: "player-5",
+    name: "Yahiya Abbas",
+    email: "yahiya.abbas@example.com",
+    phone: "+91 96666 88771",
+    role: "bat",
+    place: "Chelannur",
+    image_url: null,
+    created_at: "2025-10-10T12:00:00Z",
+    basePrice: auctionConfig.basePrice,
+    auctionStatus: "pending",
+  },
+  {
+    id: "player-6",
+    name: "Nikhil Jose",
+    email: "nikhil.jose@example.com",
+    phone: "+91 95555 11223",
+    role: "all-rounder",
+    place: "Pantheerankavu",
+    image_url: null,
+    created_at: "2025-10-12T17:30:00Z",
+    basePrice: auctionConfig.basePrice,
+    auctionStatus: "pending",
+  },
+];
+
+export const mockTeams: Team[] = [
+  {
+    id: "team-1",
+    name: "Calicut Strikers",
+    owner_name: "Ravi Menon",
+    owner_contact: "+91 94000 12345",
+    owner_details: "Local entrepreneur and former district player.",
+    icon_url: clubLogo,
+    created_at: "2025-09-25T10:15:00Z",
+  },
+  {
+    id: "team-2",
+    name: "Beachside Blazers",
+    owner_name: "Nishad Kareem",
+    owner_contact: "+91 95555 66778",
+    owner_details: "Runs the Beypore cricket academy.",
+    icon_url: "https://i.ibb.co/92gT6Sf/team-beachside.png",
+    created_at: "2025-09-28T14:05:00Z",
+  },
+  {
+    id: "team-3",
+    name: "Harbor Hawks",
+    owner_name: "Joel Francis",
+    owner_contact: "+91 94444 22119",
+    owner_details: "Logistics business owner and youth coach.",
+    icon_url: "https://i.ibb.co/jR0G5Hh/team-harbor.png",
+    created_at: "2025-09-30T09:40:00Z",
+  },
+];
+
+export const mockTeamPlayers: TeamPlayerMap = {
+  "team-1": ["player-1", "player-3"],
+  "team-2": ["player-2"],
+  "team-3": [],
+};
+

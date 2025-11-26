@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -7,8 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { Upload } from "lucide-react";
+import { useState } from "react";
 
 const teamSchema = z.object({
   name: z.string().min(2, "Team name must be at least 2 characters").max(100),
@@ -18,89 +16,67 @@ const teamSchema = z.object({
 });
 
 type TeamFormData = z.infer<typeof teamSchema>;
+export type TeamFormResult = TeamFormData & { logo_file?: File | null; logo_preview?: string };
 
 interface TeamFormProps {
-  onSuccess: () => void;
+  onSuccess: (team: TeamFormResult) => void;
 }
 
 const TeamForm = ({ onSuccess }: TeamFormProps) => {
-  const [teamIcon, setTeamIcon] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [logoFileName, setLogoFileName] = useState<string | null>(null);
 
   const { register, handleSubmit, formState: { errors } } = useForm<TeamFormData>({
     resolver: zodResolver(teamSchema),
   });
 
-  const handleIconChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("File size must be less than 5MB");
-        return;
-      }
-      setTeamIcon(file);
-    }
-  };
-
-  const uploadFile = async (file: File): Promise<string | null> => {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Math.random()}.${fileExt}`;
-    const filePath = `${fileName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('player-images')
-      .upload(filePath, file);
-
-    if (uploadError) {
-      console.error('Upload error:', uploadError);
-      return null;
+    if (!file) {
+      setLogoFile(null);
+      setLogoPreview(null);
+      setLogoFileName(null);
+      return;
     }
 
-    const { data } = supabase.storage.from('player-images').getPublicUrl(filePath);
-    return data.publicUrl;
+    const validFormats = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif', 'image/webp'];
+    if (!validFormats.includes(file.type)) {
+      toast.error("Logo must be an image file (JPG, PNG, GIF, WebP)");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Logo must be less than 5MB");
+      return;
+    }
+
+    setLogoFile(file);
+    setLogoFileName(file.name);
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setLogoPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
   };
 
-  const onSubmit = async (data: TeamFormData) => {
+  const handleFormSubmit = async (formData: TeamFormData) => {
     setIsSubmitting(true);
-
-    try {
-      let iconUrl = null;
-
-      if (teamIcon) {
-        iconUrl = await uploadFile(teamIcon);
-        if (!iconUrl) {
-          toast.error("Failed to upload team icon");
-          setIsSubmitting(false);
-          return;
-        }
-      }
-
-      const { error } = await supabase
-        .from('teams')
-        .insert([
-          {
-            name: data.name,
-            owner_name: data.owner_name,
-            owner_contact: data.owner_contact,
-            owner_details: data.owner_details || null,
-            icon_url: iconUrl,
-          },
-        ]);
-
-      if (error) throw error;
-
-      toast.success("Team created successfully!");
-      onSuccess();
-    } catch (error) {
-      console.error('Error creating team:', error);
-      toast.error("Failed to create team. Please try again.");
-    } finally {
+    setTimeout(() => {
+      toast.success("Team captured (demo mode).");
+      onSuccess({
+        ...formData,
+        logo_file: logoFile,
+        logo_preview: logoPreview,
+      });
       setIsSubmitting(false);
-    }
+    }, 500);
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
       <div className="space-y-2">
         <Label htmlFor="name">Team Name *</Label>
         <Input
@@ -151,22 +127,33 @@ const TeamForm = ({ onSuccess }: TeamFormProps) => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="teamIcon">Team Icon</Label>
-        <div className="flex items-center gap-2">
-          <Input
-            id="teamIcon"
-            type="file"
-            accept="image/*"
-            onChange={handleIconChange}
-            className="flex-1"
-          />
-          {teamIcon && <Upload className="h-5 w-5 text-primary" />}
-        </div>
-        <p className="text-xs text-muted-foreground">Max file size: 5MB</p>
+        <Label htmlFor="logo_file">Team Logo (Optional)</Label>
+        <Input
+          id="logo_file"
+          type="file"
+          accept="image/jpeg,image/png,image/jpg,image/gif,image/webp"
+          onChange={handleLogoChange}
+          className="flex-1"
+        />
+        <p className="text-xs text-muted-foreground">
+          Accepted formats: JPG, PNG, GIF, WebP (max 5MB). Leave blank to use the default club logo.
+        </p>
+        {logoFileName && (
+          <p className="text-xs text-muted-foreground">Uploaded: {logoFileName}</p>
+        )}
+        {logoPreview && (
+          <div className="relative inline-block rounded-md border overflow-hidden mt-2">
+            <img
+              src={logoPreview}
+              alt="Logo preview"
+              className="w-32 h-32 object-cover"
+            />
+          </div>
+        )}
       </div>
 
-      <Button 
-        type="submit" 
+      <Button
+        type="submit"
         className="w-full bg-primary hover:bg-primary/90"
         disabled={isSubmitting}
       >

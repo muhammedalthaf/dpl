@@ -1,137 +1,63 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UserPlus, User, X } from "lucide-react";
-
-type Player = {
-  id: string;
-  name: string;
-  role: string;
-};
-
-type TeamPlayer = {
-  id: string;
-  players: Player;
-};
+import { Player } from "@/types";
 
 interface AddPlayerToTeamProps {
   teamId: string;
   teamName: string;
+  players: Player[];
+  teamPlayers: Player[];
+  onAddPlayer: (teamId: string, playerId: string) => void;
+  onRemovePlayer: (teamId: string, playerId: string) => void;
 }
 
-const AddPlayerToTeam = ({ teamId, teamName }: AddPlayerToTeamProps) => {
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [teamPlayers, setTeamPlayers] = useState<TeamPlayer[]>([]);
+const AddPlayerToTeam = ({
+  teamId,
+  teamName,
+  players,
+  teamPlayers,
+  onAddPlayer,
+  onRemovePlayer,
+}: AddPlayerToTeamProps) => {
   const [selectedPlayer, setSelectedPlayer] = useState<string>("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    if (isDialogOpen) {
-      fetchPlayers();
-      fetchTeamPlayers();
-    }
-  }, [isDialogOpen, teamId]);
+  const availablePlayers = players.filter(
+    (player) => !teamPlayers.some((tp) => tp.id === player.id)
+  );
 
-  const fetchPlayers = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('players')
-        .select('id, name, role');
-
-      if (error) throw error;
-      setPlayers(data || []);
-    } catch (error) {
-      console.error('Error fetching players:', error);
-    }
-  };
-
-  const fetchTeamPlayers = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('team_players')
-        .select('id, players(id, name, role)')
-        .eq('team_id', teamId);
-
-      if (error) throw error;
-      setTeamPlayers(data || []);
-    } catch (error) {
-      console.error('Error fetching team players:', error);
-    }
-  };
-
-  const handleAddPlayer = async () => {
+  const handleAddPlayer = () => {
     if (!selectedPlayer) {
       toast.error("Please select a player");
       return;
     }
 
-    setIsLoading(true);
-    try {
-      const { error } = await supabase
-        .from('team_players')
-        .insert([
-          {
-            team_id: teamId,
-            player_id: selectedPlayer,
-          },
-        ]);
-
-      if (error) {
-        if (error.code === '23505') {
-          toast.error("This player is already in the team");
-        } else {
-          throw error;
-        }
-      } else {
-        toast.success("Player added to team successfully!");
-        setSelectedPlayer("");
-        fetchTeamPlayers();
-      }
-    } catch (error) {
-      console.error('Error adding player to team:', error);
-      toast.error("Failed to add player to team");
-    } finally {
-      setIsLoading(false);
-    }
+    onAddPlayer(teamId, selectedPlayer);
+    toast.success("Player linked locally.");
+    setSelectedPlayer("");
   };
 
-  const handleRemovePlayer = async (teamPlayerId: string) => {
-    try {
-      const { error } = await supabase
-        .from('team_players')
-        .delete()
-        .eq('id', teamPlayerId);
-
-      if (error) throw error;
-
-      toast.success("Player removed from team");
-      fetchTeamPlayers();
-    } catch (error) {
-      console.error('Error removing player:', error);
-      toast.error("Failed to remove player");
-    }
+  const handleRemovePlayer = (playerId: string) => {
+    onRemovePlayer(teamId, playerId);
+    toast.success("Player removed locally.");
   };
-
-  const availablePlayers = players.filter(
-    (player) => !teamPlayers.some((tp) => tp.players.id === player.id)
-  );
 
   const getRoleLabel = (role: string) => {
     switch (role) {
-      case 'bat':
-        return 'Batsman';
-      case 'ball':
-        return 'Bowler';
-      case 'wk':
-        return 'Wicket Keeper';
-      case 'all-rounder':
-        return 'All-Rounder';
+      case "bat":
+        return "Batsman";
+      case "ball":
+        return "Bowler";
+      case "wk":
+        return "Wicket Keeper";
+      case "all-rounder":
+        return "All-Rounder";
       default:
         return role;
     }
@@ -149,7 +75,7 @@ const AddPlayerToTeam = ({ teamId, teamName }: AddPlayerToTeamProps) => {
         <DialogHeader>
           <DialogTitle>Manage Players - {teamName}</DialogTitle>
           <DialogDescription>
-            Add or remove players from the team
+            Add or remove players from the team (demo data only)
           </DialogDescription>
         </DialogHeader>
 
@@ -175,10 +101,7 @@ const AddPlayerToTeam = ({ teamId, teamName }: AddPlayerToTeamProps) => {
                   )}
                 </SelectContent>
               </Select>
-              <Button 
-                onClick={handleAddPlayer} 
-                disabled={isLoading || !selectedPlayer}
-              >
+              <Button onClick={handleAddPlayer} disabled={!selectedPlayer}>
                 Add
               </Button>
             </div>
@@ -190,24 +113,24 @@ const AddPlayerToTeam = ({ teamId, teamName }: AddPlayerToTeamProps) => {
               <p className="text-sm text-muted-foreground">No players in this team yet</p>
             ) : (
               <div className="space-y-2">
-                {teamPlayers.map((teamPlayer) => (
+                {teamPlayers.map((player) => (
                   <div
-                    key={teamPlayer.id}
+                    key={player.id}
                     className="flex items-center justify-between p-3 border rounded-lg"
                   >
                     <div className="flex items-center gap-3">
                       <User className="h-4 w-4 text-muted-foreground" />
                       <div>
-                        <p className="font-medium">{teamPlayer.players.name}</p>
+                        <p className="font-medium">{player.name}</p>
                         <Badge variant="outline" className="mt-1">
-                          {getRoleLabel(teamPlayer.players.role)}
+                          {getRoleLabel(player.role)}
                         </Badge>
                       </div>
                     </div>
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleRemovePlayer(teamPlayer.id)}
+                      onClick={() => handleRemovePlayer(player.id)}
                     >
                       <X className="h-4 w-4" />
                     </Button>
