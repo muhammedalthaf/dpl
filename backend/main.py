@@ -4,11 +4,12 @@ from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import os
 
-from config import settings
+from config import settings as app_settings
 from database import connect_to_mongo, close_mongo_connection
 
 # Import routes
-from routes import players, teams, bids, auction, registrations, settings
+from routes import players, teams, bids, auction, registrations
+from routes import settings as settings_routes
 
 # Create upload directories
 UPLOAD_BASE_DIR = "/tmp/cvcl_uploads"
@@ -29,16 +30,16 @@ async def lifespan(app: FastAPI):
 
 # Create FastAPI app
 app = FastAPI(
-    title=settings.API_TITLE,
-    description=settings.API_DESCRIPTION,
-    version=settings.API_VERSION,
+    title=app_settings.API_TITLE,
+    description=app_settings.API_DESCRIPTION,
+    version=app_settings.API_VERSION,
     lifespan=lifespan,
 )
 
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_origins=app_settings.ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -51,8 +52,8 @@ async def health_check():
     """Health check endpoint"""
     return {
         "status": "healthy",
-        "service": settings.API_TITLE,
-        "version": settings.API_VERSION,
+        "service": app_settings.API_TITLE,
+        "version": app_settings.API_VERSION,
     }
 
 
@@ -62,7 +63,7 @@ async def root():
     """API Root endpoint"""
     return {
         "message": "Welcome to Calcutta Cricket League API",
-        "version": settings.API_VERSION,
+        "version": app_settings.API_VERSION,
         "docs": "/docs",
         "endpoints": {
             "players": "/api/players",
@@ -80,7 +81,7 @@ app.include_router(teams.router, prefix="/api")
 app.include_router(bids.router, prefix="/api")
 app.include_router(auction.router, prefix="/api")
 app.include_router(registrations.router, prefix="/api")
-app.include_router(settings.router, prefix="/api")
+app.include_router(settings_routes.router, prefix="/api")
 
 # Mount static files for uploads
 app.mount("/uploads", StaticFiles(directory=UPLOAD_BASE_DIR), name="uploads")
