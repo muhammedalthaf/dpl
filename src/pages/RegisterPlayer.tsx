@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -9,11 +9,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { ArrowLeft, Copy, Download } from "lucide-react";
+import { ArrowLeft, Copy, Download, XCircle } from "lucide-react";
 import clubLogo from "@/assets/club-logo.png";
 import { paymentConfig } from "@/config/payment";
 import { panchayats } from "@/config/panchayats";
-import { registrationAPI } from "@/lib/api";
+import { registrationAPI, settingsAPI } from "@/lib/api";
 
 const playerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").max(100),
@@ -36,10 +36,28 @@ const RegisterPlayer = () => {
   const [paymentFileName, setPaymentFileName] = useState<string | null>(null);
   const [idProofFile, setIdProofFile] = useState<File | null>(null);
   const [idProofFileName, setIdProofFileName] = useState<string | null>(null);
+  const [registrationOpen, setRegistrationOpen] = useState<boolean | null>(null);
+  const [isCheckingStatus, setIsCheckingStatus] = useState(true);
 
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<PlayerFormData>({
     resolver: zodResolver(playerSchema),
   });
+
+  useEffect(() => {
+    checkRegistrationStatus();
+  }, []);
+
+  const checkRegistrationStatus = async () => {
+    try {
+      const settings = await settingsAPI.getSettings();
+      setRegistrationOpen(settings.registration_open);
+    } catch (error) {
+      console.error("Failed to check registration status:", error);
+      setRegistrationOpen(true); // Default to open if can't fetch
+    } finally {
+      setIsCheckingStatus(false);
+    }
+  };
 
   const roleValue = watch("role");
   const panchayatValue = watch("panchayat");
@@ -192,6 +210,53 @@ const RegisterPlayer = () => {
       setIsSubmitting(false);
     }
   };
+
+  // Show loading state while checking registration status
+  if (isCheckingStatus) {
+    return (
+      <div className="min-h-screen bg-gradient-primary py-12 px-4 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <p className="text-primary-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show registration closed message
+  if (registrationOpen === false) {
+    return (
+      <div className="min-h-screen bg-gradient-primary py-12 px-4">
+        <div className="container max-w-2xl mx-auto">
+          <Link to="/" className="inline-flex items-center text-primary-foreground hover:text-primary-foreground/80 mb-6 transition-colors">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Home
+          </Link>
+
+          <div className="text-center mb-8">
+            <img src={clubLogo} alt="Club Logo" className="mx-auto mb-4" style={{height:"20vh", objectFit: "cover"}}/>
+          </div>
+
+          <Card className="shadow-card">
+            <CardContent className="pt-8 pb-8">
+              <div className="text-center">
+                <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+                <h2 className="text-2xl font-bold text-card-foreground mb-2">Registration Closed</h2>
+                <p className="text-muted-foreground mb-6">
+                  Player registration is currently closed. Please check back later or contact the organizers for more information.
+                </p>
+                <Link to="/">
+                  <Button size="lg">
+                    Back to Home
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-primary py-12 px-4">

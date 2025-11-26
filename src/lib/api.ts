@@ -250,4 +250,19 @@ export const registrationAPI = {
   },
 };
 
+// ===================== SETTINGS API =====================
+export const settingsAPI = {
+  async getSettings() {
+    const response = await apiClient.get('/settings/');
+    return response.data.data;
+  },
+
+  async updateRegistrationStatus(isOpen: boolean) {
+    const response = await apiClient.put('/settings/registration-status', null, {
+      params: { is_open: isOpen },
+    });
+    return response.data.data;
+  },
+};
+
 export default apiClient;

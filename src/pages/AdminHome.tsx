@@ -1,12 +1,45 @@
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Users, Trophy, Hammer, BarChart3, ClipboardList, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { settingsAPI } from "@/lib/api";
+import { toast } from "sonner";
 import clubLogo from "@/assets/club-logo.png";
 
 const AdminHome = () => {
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const [registrationOpen, setRegistrationOpen] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const settings = await settingsAPI.getSettings();
+      setRegistrationOpen(settings.registration_open);
+    } catch (error) {
+      console.error("Failed to fetch settings:", error);
+    }
+  };
+
+  const handleRegistrationToggle = async (checked: boolean) => {
+    setIsUpdating(true);
+    try {
+      await settingsAPI.updateRegistrationStatus(checked);
+      setRegistrationOpen(checked);
+      toast.success(`Registration ${checked ? "opened" : "closed"} successfully`);
+    } catch (error) {
+      console.error("Failed to update registration status:", error);
+      toast.error("Failed to update registration status");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -43,6 +76,28 @@ const AdminHome = () => {
           <p className="text-xl text-primary-foreground/90 max-w-2xl mx-auto">
             Manage registrations, players, teams, and auctions
           </p>
+        </div>
+
+        {/* Registration Toggle */}
+        <div className="max-w-md mx-auto mb-8">
+          <div className="bg-card rounded-xl p-6 shadow-card">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-card-foreground">
+                  Player Registration
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {registrationOpen ? "Registration is currently open" : "Registration is currently closed"}
+                </p>
+              </div>
+              <Switch
+                checked={registrationOpen}
+                onCheckedChange={handleRegistrationToggle}
+                disabled={isUpdating}
+                className="data-[state=checked]:bg-green-500"
+              />
+            </div>
+          </div>
         </div>
 
         {/* Action Cards */}

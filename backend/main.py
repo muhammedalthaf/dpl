@@ -8,7 +8,7 @@ from config import settings
 from database import connect_to_mongo, close_mongo_connection
 
 # Import routes
-from routes import players, teams, bids, auction, registrations
+from routes import players, teams, bids, auction, registrations, settings
 
 # Create upload directories
 UPLOAD_BASE_DIR = "/tmp/cvcl_uploads"
@@ -80,6 +80,7 @@ app.include_router(teams.router, prefix="/api")
 app.include_router(bids.router, prefix="/api")
 app.include_router(auction.router, prefix="/api")
 app.include_router(registrations.router, prefix="/api")
+app.include_router(settings.router, prefix="/api")
 
 # Mount static files for uploads
 app.mount("/uploads", StaticFiles(directory=UPLOAD_BASE_DIR), name="uploads")
