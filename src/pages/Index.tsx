@@ -15,7 +15,7 @@ const Index = () => {
             className="w-48 h-48 mx-auto mb-6 drop-shadow-2xl"
           />
           <h1 className="text-5xl font-bold text-primary-foreground mb-4">
-            Riverstar Devarkovil Cricket League
+            Deverkovil Premier League
           </h1>
           <p className="text-xl text-primary-foreground/90 max-w-2xl mx-auto">
             Welcome to Calicut Village Cricket League Registration Portal
