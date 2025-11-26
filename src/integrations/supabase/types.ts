@@ -14,7 +14,108 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      players: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          id_proof_url: string | null
+          image_url: string | null
+          name: string
+          phone: string
+          place: string
+          role: Database["public"]["Enums"]["player_role"]
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          id_proof_url?: string | null
+          image_url?: string | null
+          name: string
+          phone: string
+          place: string
+          role: Database["public"]["Enums"]["player_role"]
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          id_proof_url?: string | null
+          image_url?: string | null
+          name?: string
+          phone?: string
+          place?: string
+          role?: Database["public"]["Enums"]["player_role"]
+        }
+        Relationships: []
+      }
+      team_players: {
+        Row: {
+          created_at: string
+          id: string
+          player_id: string
+          team_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          player_id: string
+          team_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          player_id?: string
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_players_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_players_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          created_at: string
+          icon_url: string | null
+          id: string
+          name: string
+          owner_contact: string
+          owner_details: string | null
+          owner_name: string
+        }
+        Insert: {
+          created_at?: string
+          icon_url?: string | null
+          id?: string
+          name: string
+          owner_contact: string
+          owner_details?: string | null
+          owner_name: string
+        }
+        Update: {
+          created_at?: string
+          icon_url?: string | null
+          id?: string
+          name?: string
+          owner_contact?: string
+          owner_details?: string | null
+          owner_name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +124,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      player_role: "bat" | "ball" | "wk" | "all-rounder"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +251,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      player_role: ["bat", "ball", "wk", "all-rounder"],
+    },
   },
 } as const
