@@ -15,6 +15,7 @@ import AuctionSummary from "./pages/AuctionSummary";
 import AuctionControl from "./pages/AuctionControl";
 import AuctionDisplay from "./pages/AuctionDisplay";
 import Registrations from "./pages/Registrations";
+import ApprovedPayments from "./pages/ApprovedPayments";
 
 const App = () => (
   <AuthProvider>
@@ -32,6 +33,7 @@ const App = () => (
           <Route path="/admin" element={<ProtectedRoute><AdminHome /></ProtectedRoute>} />
           <Route path="/admin/registrations" element={<ProtectedRoute><Registrations /></ProtectedRoute>} />
           <Route path="/admin/players" element={<ProtectedRoute><Players /></ProtectedRoute>} />
+          <Route path="/admin/approved-payments" element={<ProtectedRoute><ApprovedPayments /></ProtectedRoute>} />
           <Route path="/admin/teams" element={<ProtectedRoute><Teams /></ProtectedRoute>} />
           <Route path="/admin/auction/summary" element={<ProtectedRoute><AuctionSummary /></ProtectedRoute>} />
           <Route path="/admin/auction/control" element={<ProtectedRoute><AuctionControl /></ProtectedRoute>} />

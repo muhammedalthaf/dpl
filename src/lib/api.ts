@@ -250,6 +250,18 @@ export const registrationAPI = {
     );
     return response.data.data;
   },
+
+  async getStatistics() {
+    const response = await apiClient.get('/registrations/stats/summary');
+    return response.data.data;
+  },
+
+  async getApprovedWithPayments(skip: number = 0, limit: number = 100) {
+    const response = await apiClient.get('/registrations/approved/payments', {
+      params: { skip, limit },
+    });
+    return response.data.data;
+  },
 };
 
 // ===================== SETTINGS API =====================

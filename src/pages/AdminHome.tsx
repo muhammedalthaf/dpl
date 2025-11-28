@@ -2,20 +2,30 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Users, Trophy, Hammer, BarChart3, ClipboardList, LogOut } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Users, Trophy, Hammer, BarChart3, ClipboardList, LogOut, Clock, CheckCircle, XCircle, UserCheck, Receipt } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { settingsAPI } from "@/lib/api";
+import { settingsAPI, registrationAPI } from "@/lib/api";
 import { toast } from "sonner";
 import clubLogo from "@/assets/club-logo.png";
+
+interface Statistics {
+  pending_registrations: number;
+  approved_registrations: number;
+  rejected_registrations: number;
+  total_players: number;
+}
 
 const AdminHome = () => {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const [registrationOpen, setRegistrationOpen] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [stats, setStats] = useState<Statistics | null>(null);
 
   useEffect(() => {
     fetchSettings();
+    fetchStatistics();
   }, []);
 
   const fetchSettings = async () => {
@@ -24,6 +34,15 @@ const AdminHome = () => {
       setRegistrationOpen(settings.registration_open);
     } catch (error) {
       console.error("Failed to fetch settings:", error);
+    }
+  };
+
+  const fetchStatistics = async () => {
+    try {
+      const data = await registrationAPI.getStatistics();
+      setStats(data);
+    } catch (error) {
+      console.error("Failed to fetch statistics:", error);
     }
   };
 
@@ -100,6 +119,40 @@ const AdminHome = () => {
           </div>
         </div>
 
+        {/* Statistics Cards */}
+        {stats && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto mb-8">
+            <Card className="bg-yellow-50 border-yellow-200">
+              <CardContent className="p-4 text-center">
+                <Clock className="w-8 h-8 mx-auto mb-2 text-yellow-600" />
+                <p className="text-3xl font-bold text-yellow-700">{stats.pending_registrations}</p>
+                <p className="text-sm text-yellow-600">Pending</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-green-50 border-green-200">
+              <CardContent className="p-4 text-center">
+                <CheckCircle className="w-8 h-8 mx-auto mb-2 text-green-600" />
+                <p className="text-3xl font-bold text-green-700">{stats.approved_registrations}</p>
+                <p className="text-sm text-green-600">Approved</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-red-50 border-red-200">
+              <CardContent className="p-4 text-center">
+                <XCircle className="w-8 h-8 mx-auto mb-2 text-red-600" />
+                <p className="text-3xl font-bold text-red-700">{stats.rejected_registrations}</p>
+                <p className="text-sm text-red-600">Rejected</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-blue-50 border-blue-200">
+              <CardContent className="p-4 text-center">
+                <UserCheck className="w-8 h-8 mx-auto mb-2 text-blue-600" />
+                <p className="text-3xl font-bold text-blue-700">{stats.total_players}</p>
+                <p className="text-sm text-blue-600">Total Players</p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Action Cards */}
         <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto mt-12">
           <Link to="/admin/registrations" className="group">
@@ -126,6 +179,20 @@ const AdminHome = () => {
               </h3>
               <p className="text-muted-foreground text-center">
                 View approved players
+              </p>
+            </div>
+          </Link>
+
+          <Link to="/admin/approved-payments" className="group">
+            <div className="bg-card rounded-xl p-8 shadow-card hover:shadow-hover transition-all duration-300 transform hover:-translate-y-1">
+              <div className="bg-gradient-accent rounded-full w-16 h-16 flex items-center justify-center mb-4 mx-auto group-hover:scale-110 transition-transform">
+                <Receipt className="w-8 h-8 text-card" />
+              </div>
+              <h3 className="text-2xl font-bold text-card-foreground mb-2 text-center">
+                Payments
+              </h3>
+              <p className="text-muted-foreground text-center">
+                View approved transactions
               </p>
             </div>
           </Link>

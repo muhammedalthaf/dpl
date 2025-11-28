@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { ArrowLeft, Eye, Check, X, Loader, Image, FileText, RefreshCw, Download } from "lucide-react";
+import { ArrowLeft, Eye, Check, X, Loader, Image, FileText, RefreshCw, Download, MessageCircle } from "lucide-react";
 import clubLogo from "@/assets/club-logo.png";
 import { registrationAPI } from "@/lib/api";
 
@@ -118,6 +118,13 @@ const Registrations = () => {
   const openRejectDialog = (registration: Registration) => {
     setSelectedRegistration(registration);
     setRejectDialogOpen(true);
+  };
+
+  const openWhatsApp = (phone: string, playerName: string) => {
+    const cleanPhone = phone.replace(/\D/g, "");
+    const phoneWithCode = cleanPhone.startsWith("91") ? cleanPhone : `91${cleanPhone}`;
+    const message = `Hi ${playerName}, regarding your DPL registration...`;
+    window.open(`https://wa.me/${phoneWithCode}?text=${encodeURIComponent(message)}`, "_blank");
   };
 
   // Resolve file URL - handles both base64 data URLs and server-relative paths
@@ -398,16 +405,29 @@ const Registrations = () => {
               <DialogTitle>Approve Registration</DialogTitle>
               <DialogDescription>Enter the payment reference number for {selectedRegistration?.player_name}'s registration.</DialogDescription>
             </DialogHeader>
-            <div className="py-4">
-              <Label htmlFor="payment-reference">Payment Reference Number *</Label>
-              <Input
-                id="payment-reference"
-                value={paymentReference}
-                onChange={(e) => setPaymentReference(e.target.value)}
-                placeholder="Enter payment reference / UTR number"
-                className="mt-2"
-              />
-              <p className="text-xs text-muted-foreground mt-1">This helps prevent duplicate payments from being processed.</p>
+            <div className="py-4 space-y-4">
+              <div>
+                <Label htmlFor="payment-reference">Payment Reference Number *</Label>
+                <Input
+                  id="payment-reference"
+                  value={paymentReference}
+                  onChange={(e) => setPaymentReference(e.target.value)}
+                  placeholder="Enter payment reference / UTR number"
+                  className="mt-2"
+                />
+                <p className="text-xs text-muted-foreground mt-1">This helps prevent duplicate payments from being processed.</p>
+              </div>
+              {selectedRegistration?.phone && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
+                  onClick={() => openWhatsApp(selectedRegistration.phone, selectedRegistration.player_name)}
+                >
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  Contact {selectedRegistration.player_name} on WhatsApp
+                </Button>
+              )}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setApproveDialogOpen(false)}>Cancel</Button>

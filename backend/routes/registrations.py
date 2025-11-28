@@ -182,3 +182,26 @@ async def reject_registration(registration_id: str, rejection_reason: str):
         return create_response(result, "Registration rejected successfully")
     except Exception as e:
         return create_error_response(str(e), 400)
+
+
+@router.get("/stats/summary", summary="Get registration statistics")
+async def get_statistics():
+    """Get counts for pending, approved, rejected registrations and total players"""
+    try:
+        result = await RegistrationController.get_statistics()
+        return create_response(result, "Statistics retrieved successfully")
+    except Exception as e:
+        return create_error_response(str(e), 400)
+
+
+@router.get("/approved/payments", summary="Get approved registrations with payment details")
+async def get_approved_with_payments(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500)
+):
+    """Get list of approved players with their payment reference numbers"""
+    try:
+        result = await RegistrationController.get_approved_with_payments(skip, limit)
+        return create_response(result, "Approved players retrieved successfully")
+    except Exception as e:
+        return create_error_response(str(e), 400)

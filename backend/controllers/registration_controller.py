@@ -11,6 +11,52 @@ class RegistrationController:
     """Controller for registration operations"""
 
     @staticmethod
+    async def get_statistics() -> dict:
+        """Get registration and player statistics"""
+        db = get_database()
+        registrations = db["registrations"]
+        players = db["players"]
+
+        pending_count = await registrations.count_documents({"status": RegistrationStatus.PENDING.value})
+        approved_count = await registrations.count_documents({"status": RegistrationStatus.APPROVED.value})
+        rejected_count = await registrations.count_documents({"status": RegistrationStatus.REJECTED.value})
+        total_players = await players.count_documents({})
+
+        return {
+            "pending_registrations": pending_count,
+            "approved_registrations": approved_count,
+            "rejected_registrations": rejected_count,
+            "total_players": total_players,
+        }
+
+    @staticmethod
+    async def get_approved_with_payments(skip: int = 0, limit: int = 100) -> dict:
+        """Get approved registrations with payment reference details"""
+        db = get_database()
+        registrations = db["registrations"]
+
+        cursor = registrations.find(
+            {"status": RegistrationStatus.APPROVED.value}
+        ).sort("updated_at", -1).skip(skip).limit(limit)
+
+        results = []
+        async for doc in cursor:
+            results.append({
+                "_id": str(doc["_id"]),
+                "player_name": doc.get("player_name"),
+                "phone": doc.get("phone"),
+                "payment_reference": doc.get("payment_reference"),
+                "approved_at": doc.get("updated_at"),
+            })
+
+        total = await registrations.count_documents({"status": RegistrationStatus.APPROVED.value})
+
+        return {
+            "approved_players": results,
+            "total": total,
+        }
+
+    @staticmethod
     async def create_registration(registration_data: RegistrationCreate) -> dict:
         """Create a new registration"""
         db = get_database()
