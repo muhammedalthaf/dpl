@@ -8,8 +8,9 @@ from utils import create_response, create_error_response
 
 router = APIRouter(prefix="/registrations", tags=["Registrations"])
 
-# Create upload directory if it doesn't exist
-UPLOAD_DIR = "/tmp/cvcl_uploads/registrations"
+# Create upload directory if it doesn't exist (relative to application directory)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+UPLOAD_DIR = os.path.join(BASE_DIR, "uploads", "registrations")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # Valid role values

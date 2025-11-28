@@ -7,8 +7,9 @@ from utils import create_response, create_error_response
 
 router = APIRouter(prefix="/teams", tags=["Teams"])
 
-# Create upload directory if it doesn't exist
-UPLOAD_DIR = "/tmp/cvcl_uploads/teams"
+# Create upload directory if it doesn't exist (relative to application directory)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+UPLOAD_DIR = os.path.join(BASE_DIR, "uploads", "teams")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
