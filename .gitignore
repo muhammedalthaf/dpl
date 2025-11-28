@@ -28,3 +28,7 @@ backend/__pycache__/
 backend/**/__pycache__/
 backend/uploads/
 *.pyc
+
+# Environment files (keep credentials safe)
+.env
+!.env.example

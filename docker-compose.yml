@@ -8,10 +8,10 @@ services:
     container_name: dpl_cricket_api
     restart: unless-stopped
     ports:
-      - "8019:8000"
+      - "${API_PORT:-8019}:8000"
     environment:
-      MONGODB_URL: mongodb+srv://althaf-mongo:EwrCidJv4MUUgHpL@cluster0.n1h85qi.mongodb.net/dpl-cricket?retryWrites=true&w=majority&appName=Cluster0
-      DATABASE_NAME: calcutta_cricket_league
+      MONGODB_URL: ${MONGODB_URL}
+      DATABASE_NAME: ${DATABASE_NAME:-calcutta_cricket_league}
       ALLOWED_ORIGINS: '["*"]'
     volumes:
       - uploads_data:/app/uploads
@@ -23,11 +23,11 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: https://dpl.bitroxy.co/api
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8019/api}
     container_name: dpl_cricket_frontend
     restart: unless-stopped
     ports:
-      - "8020:80"
+      - "${FRONTEND_PORT:-8020}:80"
     depends_on:
       - api
     networks:
