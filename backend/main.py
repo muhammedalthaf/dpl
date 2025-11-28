@@ -11,8 +11,9 @@ from database import connect_to_mongo, close_mongo_connection
 from routes import players, teams, bids, auction, registrations
 from routes import settings as settings_routes
 
-# Create upload directories
-UPLOAD_BASE_DIR = "/tmp/cvcl_uploads"
+# Create upload directories (relative to application directory)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_BASE_DIR = os.path.join(BASE_DIR, "uploads")
 os.makedirs(f"{UPLOAD_BASE_DIR}/teams", exist_ok=True)
 os.makedirs(f"{UPLOAD_BASE_DIR}/registrations", exist_ok=True)
 

@@ -14,7 +14,7 @@ services:
       DATABASE_NAME: calcutta_cricket_league
       ALLOWED_ORIGINS: '["*"]'
     volumes:
-      - uploads_data:/tmp/cvcl_uploads
+      - uploads_data:/app/uploads
     networks:
       - cricket_network
 
