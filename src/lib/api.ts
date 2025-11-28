@@ -235,8 +235,10 @@ export const registrationAPI = {
     return response.data.data;
   },
 
-  async approveRegistration(id: string) {
-    const response = await apiClient.post(`/registrations/${id}/approve`);
+  async approveRegistration(id: string, paymentReference: string) {
+    const response = await apiClient.post(`/registrations/${id}/approve`, null, {
+      params: { payment_reference: paymentReference },
+    });
     return response.data.data;
   },
 

@@ -163,11 +163,13 @@ async def delete_registration(registration_id: str):
 
 
 @router.post("/{registration_id}/approve", summary="Approve registration")
-async def approve_registration(registration_id: str):
-    """Approve a player registration"""
+async def approve_registration(registration_id: str, payment_reference: str):
+    """Approve a player registration with payment reference"""
     try:
-        result = await RegistrationController.approve_registration(registration_id)
+        result = await RegistrationController.approve_registration(registration_id, payment_reference)
         return create_response(result, "Registration approved successfully")
+    except HTTPException as e:
+        return create_error_response(e.detail, e.status_code)
     except Exception as e:
         return create_error_response(str(e), 400)
 

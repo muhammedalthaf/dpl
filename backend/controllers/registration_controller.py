@@ -144,16 +144,35 @@ class RegistrationController:
         return {"message": "Registration deleted successfully"}
 
     @staticmethod
-    async def approve_registration(registration_id: str) -> dict:
-        """Approve a registration"""
+    async def approve_registration(registration_id: str, payment_reference: str) -> dict:
+        """Approve a registration with payment reference validation"""
         if not validate_object_id(registration_id):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid registration ID",
             )
 
+        if not payment_reference or not payment_reference.strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Payment reference number is required",
+            )
+
+        payment_reference = payment_reference.strip()
+
         db = get_database()
         registrations = db["registrations"]
+
+        # Check if payment reference is already used
+        existing_payment = await registrations.find_one({
+            "payment_reference": payment_reference,
+            "status": RegistrationStatus.APPROVED.value
+        })
+        if existing_payment:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="This payment reference is already processed",
+            )
 
         # Get registration details
         registration = await registrations.find_one({"_id": ObjectId(registration_id)})
@@ -163,10 +182,11 @@ class RegistrationController:
                 detail="Registration not found",
             )
 
-        # Update status
+        # Update status with payment reference
         update_data = {
             "status": RegistrationStatus.APPROVED.value,
             "rejection_reason": None,
+            "payment_reference": payment_reference,
             "updated_at": datetime.utcnow(),
         }
 

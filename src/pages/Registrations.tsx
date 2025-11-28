@@ -40,7 +40,9 @@ const Registrations = () => {
   const [selectedRegistration, setSelectedRegistration] = useState<Registration | null>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [approveDialogOpen, setApproveDialogOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
+  const [paymentReference, setPaymentReference] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
   const [currentImage, setCurrentImage] = useState<string>("");
@@ -64,13 +66,28 @@ const Registrations = () => {
     fetchRegistrations();
   }, [statusFilter]);
 
-  const handleApprove = async (registration: Registration) => {
+  const openApproveDialog = (registration: Registration) => {
+    setSelectedRegistration(registration);
+    setPaymentReference("");
+    setApproveDialogOpen(true);
+  };
+
+  const handleApprove = async () => {
+    if (!selectedRegistration) return;
+
+    if (!paymentReference.trim()) {
+      toast.error("Please enter payment reference number");
+      return;
+    }
+
     try {
       setActionLoading(true);
-      await registrationAPI.approveRegistration(registration._id);
-      toast.success(`${registration.player_name} approved and added to players!`);
+      await registrationAPI.approveRegistration(selectedRegistration._id, paymentReference.trim());
+      toast.success(`${selectedRegistration.player_name} approved and added to players!`);
       fetchRegistrations();
+      setApproveDialogOpen(false);
       setViewDialogOpen(false);
+      setPaymentReference("");
     } catch (error: any) {
       toast.error(error?.response?.data?.message || "Failed to approve registration");
     } finally {
@@ -253,7 +270,7 @@ const Registrations = () => {
                           </Button>
                           {reg.status === "pending" && (
                             <>
-                              <Button size="sm" variant="default" className="bg-green-600 hover:bg-green-700" onClick={() => handleApprove(reg)} disabled={actionLoading}>
+                              <Button size="sm" variant="default" className="bg-green-600 hover:bg-green-700" onClick={() => openApproveDialog(reg)} disabled={actionLoading}>
                                 <Check className="h-4 w-4" />
                               </Button>
                               <Button size="sm" variant="destructive" onClick={() => openRejectDialog(reg)} disabled={actionLoading}>
@@ -280,31 +297,31 @@ const Registrations = () => {
             {selectedRegistration && (
               <div className="space-y-4">
                 {/* Player Image and Basic Info */}
-                <div className="flex gap-4 items-start">
+                <div className="flex flex-col sm:flex-row gap-4 items-center sm:items-start">
                   {selectedRegistration.player_image_url ? (
                     <img
                       src={resolveFileUrl(selectedRegistration.player_image_url)}
                       alt={selectedRegistration.player_name}
-                      className="w-24 h-24 rounded-lg object-cover cursor-pointer border shadow-sm"
+                      className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg object-cover cursor-pointer border shadow-sm flex-shrink-0"
                       onClick={() => viewImage(selectedRegistration.player_image_url!, `${selectedRegistration.player_name}'s Photo`)}
                     />
                   ) : (
-                    <div className="w-24 h-24 rounded-lg bg-muted flex items-center justify-center text-muted-foreground text-2xl font-bold">
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg bg-muted flex items-center justify-center text-muted-foreground text-2xl font-bold flex-shrink-0">
                       {selectedRegistration.player_name.charAt(0).toUpperCase()}
                     </div>
                   )}
-                  <div className="flex-1">
+                  <div className="flex-1 text-center sm:text-left">
                     <h3 className="text-xl font-semibold">{selectedRegistration.player_name}</h3>
                     <p className="text-muted-foreground">{selectedRegistration.phone}</p>
-                    <div className="flex gap-2 mt-2">
+                    <div className="flex gap-2 mt-2 justify-center sm:justify-start flex-wrap">
                       {getRoleBadge(selectedRegistration.role)}
                       {getStatusBadge(selectedRegistration.status)}
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div><Label className="text-muted-foreground">Email</Label><p className="font-medium">{selectedRegistration.email || "N/A"}</p></div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div><Label className="text-muted-foreground">Email</Label><p className="font-medium break-all">{selectedRegistration.email || "N/A"}</p></div>
                   <div><Label className="text-muted-foreground">Place</Label><p className="font-medium">{selectedRegistration.place}</p></div>
                   <div><Label className="text-muted-foreground">Panchayat</Label><p className="font-medium">{selectedRegistration.panchayat || "N/A"}</p></div>
                   <div><Label className="text-muted-foreground">Registered On</Label><p className="font-medium">{formatDate(selectedRegistration.created_at)}</p></div>
@@ -315,37 +332,37 @@ const Registrations = () => {
                     <p className="text-red-700">{selectedRegistration.rejection_reason}</p>
                   </div>
                 )}
-                <div className="flex gap-4 flex-wrap">
+                <div className="flex gap-2 sm:gap-4 flex-wrap">
                   {selectedRegistration.player_image_url && (
-                    <Button variant="outline" onClick={() => viewImage(selectedRegistration.player_image_url!, `${selectedRegistration.player_name}'s Photo`)}>
+                    <Button variant="outline" size="sm" onClick={() => viewImage(selectedRegistration.player_image_url!, `${selectedRegistration.player_name}'s Photo`)}>
                       <Image className="h-4 w-4 mr-2" /> View Photo
                     </Button>
                   )}
                   {selectedRegistration.payment_screenshot_url && (
-                    <Button variant="outline" onClick={() => viewImage(selectedRegistration.payment_screenshot_url!, "Payment Screenshot")}>
+                    <Button variant="outline" size="sm" onClick={() => viewImage(selectedRegistration.payment_screenshot_url!, "Payment Screenshot")}>
                       <Image className="h-4 w-4 mr-2" /> View Payment
                     </Button>
                   )}
                   {selectedRegistration.id_proof_url && (
                     isImageFile(selectedRegistration.id_proof_url) ? (
-                      <Button variant="outline" onClick={() => viewImage(selectedRegistration.id_proof_url!, `ID Proof (${selectedRegistration.id_proof_type || "Document"})`)}>
+                      <Button variant="outline" size="sm" onClick={() => viewImage(selectedRegistration.id_proof_url!, `ID Proof (${selectedRegistration.id_proof_type || "Document"})`)}>
                         <FileText className="h-4 w-4 mr-2" /> View ID Proof
                       </Button>
                     ) : (
-                      <Button variant="outline" onClick={() => downloadFile(selectedRegistration.id_proof_url!, `id_proof_${selectedRegistration.player_name.replace(/\s+/g, "_")}`)}>
+                      <Button variant="outline" size="sm" onClick={() => downloadFile(selectedRegistration.id_proof_url!, `id_proof_${selectedRegistration.player_name.replace(/\s+/g, "_")}`)}>
                         <Download className="h-4 w-4 mr-2" /> Download ID Proof
                       </Button>
                     )
                   )}
                 </div>
                 {selectedRegistration.status === "pending" && (
-                  <DialogFooter className="gap-2">
-                    <Button variant="destructive" onClick={() => openRejectDialog(selectedRegistration)} disabled={actionLoading}>
-                      <X className="h-4 w-4 mr-2" /> Reject
-                    </Button>
-                    <Button className="bg-green-600 hover:bg-green-700" onClick={() => handleApprove(selectedRegistration)} disabled={actionLoading}>
-                      {actionLoading ? <Loader className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
+                  <DialogFooter className="flex-col sm:flex-row gap-2">
+                    <Button className="w-full sm:w-auto bg-green-600 hover:bg-green-700" onClick={() => openApproveDialog(selectedRegistration)} disabled={actionLoading}>
+                      <Check className="h-4 w-4 mr-2" />
                       Approve & Create Player
+                    </Button>
+                    <Button variant="destructive" className="w-full sm:w-auto" onClick={() => openRejectDialog(selectedRegistration)} disabled={actionLoading}>
+                      <X className="h-4 w-4 mr-2" /> Reject
                     </Button>
                   </DialogFooter>
                 )}
@@ -369,6 +386,34 @@ const Registrations = () => {
               <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>Cancel</Button>
               <Button variant="destructive" onClick={handleReject} disabled={actionLoading || !rejectionReason.trim()}>
                 {actionLoading ? <Loader className="h-4 w-4 animate-spin mr-2" /> : null}Confirm Reject
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Approve Dialog */}
+        <Dialog open={approveDialogOpen} onOpenChange={setApproveDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Approve Registration</DialogTitle>
+              <DialogDescription>Enter the payment reference number for {selectedRegistration?.player_name}'s registration.</DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <Label htmlFor="payment-reference">Payment Reference Number *</Label>
+              <Input
+                id="payment-reference"
+                value={paymentReference}
+                onChange={(e) => setPaymentReference(e.target.value)}
+                placeholder="Enter payment reference / UTR number"
+                className="mt-2"
+              />
+              <p className="text-xs text-muted-foreground mt-1">This helps prevent duplicate payments from being processed.</p>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setApproveDialogOpen(false)}>Cancel</Button>
+              <Button className="bg-green-600 hover:bg-green-700" onClick={handleApprove} disabled={actionLoading || !paymentReference.trim()}>
+                {actionLoading ? <Loader className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
+                Approve
               </Button>
             </DialogFooter>
           </DialogContent>
