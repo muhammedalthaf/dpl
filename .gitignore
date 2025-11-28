@@ -32,3 +32,4 @@ backend/uploads/
 # Environment files (keep credentials safe)
 .env
 !.env.example
+*.env
