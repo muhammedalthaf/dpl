@@ -361,6 +361,16 @@ const Registrations = () => {
                       </Button>
                     )
                   )}
+                  {selectedRegistration.phone && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
+                      onClick={() => openWhatsApp(selectedRegistration.phone, selectedRegistration.player_name)}
+                    >
+                      <MessageCircle className="h-4 w-4 mr-2" /> WhatsApp
+                    </Button>
+                  )}
                 </div>
                 {selectedRegistration.status === "pending" && (
                   <DialogFooter className="flex-col sm:flex-row gap-2">
