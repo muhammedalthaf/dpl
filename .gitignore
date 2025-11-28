@@ -31,5 +31,5 @@ backend/uploads/
 
 # Environment files (keep credentials safe)
 .env
+.env-docker
 !.env.example
-*.env
