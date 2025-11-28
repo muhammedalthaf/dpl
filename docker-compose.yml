@@ -10,8 +10,8 @@ services:
     ports:
       - "8019:8000"
     environment:
-      MONGODB_URL: mongodb+srv://mongo:test@cluster0.n1h85qi.mongodb.net/dpl-cricket?retryWrites=true&w=majority&appName=Cluster0
-      DATABASE_NAME: dpl-cricket
+      MONGODB_URL: mongodb+srv://althaf-mongo:EwrCidJv4MUUgHpL@cluster0.n1h85qi.mongodb.net/dpl-cricket?retryWrites=true&w=majority&appName=Cluster0
+      DATABASE_NAME: calcutta_cricket_league
       ALLOWED_ORIGINS: '["*"]'
     volumes:
       - uploads_data:/tmp/cvcl_uploads
