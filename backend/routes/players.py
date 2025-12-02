@@ -1,9 +1,17 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, File, UploadFile
 from schemas import PlayerCreate, PlayerUpdate, PlayerRole
 from controllers.player_controller import PlayerController
 from utils import create_response, create_error_response
+import os
+import aiofiles
+import time
 
 router = APIRouter(prefix="/players", tags=["Players"])
+
+# Create upload directory for player images
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+UPLOAD_DIR = os.path.join(BASE_DIR, "uploads", "players")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 @router.post("/", summary="Create a new player")
@@ -70,5 +78,31 @@ async def get_players_by_role(
     try:
         result = await PlayerController.get_players_by_role(role.value, skip, limit)
         return create_response(result, f"Players with role {role.value} retrieved successfully")
+    except Exception as e:
+        return create_error_response(str(e), 400)
+
+
+@router.post("/{player_id}/upload-image", summary="Upload player image")
+async def upload_player_image(player_id: str, image: UploadFile = File(...)):
+    """Upload or update player image"""
+    try:
+        # Get current player to ensure it exists
+        player = await PlayerController.get_player(player_id)
+
+        # Save new image
+        img_ext = image.filename.split(".")[-1].lower()
+        img_filename = f"{player['name'].replace(' ', '_')}_{int(time.time())}.{img_ext}"
+        img_path = os.path.join(UPLOAD_DIR, img_filename)
+
+        async with aiofiles.open(img_path, "wb") as f:
+            contents = await image.read()
+            await f.write(contents)
+
+        image_url = f"/uploads/players/{img_filename}"
+
+        # Update player with new image URL
+        from schemas import PlayerUpdate
+        result = await PlayerController.update_player(player_id, PlayerUpdate(image_url=image_url))
+        return create_response(result, "Player image uploaded successfully")
     except Exception as e:
         return create_error_response(str(e), 400)

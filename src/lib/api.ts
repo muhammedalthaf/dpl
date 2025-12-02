@@ -69,6 +69,15 @@ export const playerAPI = {
     const response = await apiClient.get(`/players/role/${role}`, { params: { skip, limit } });
     return response.data.data;
   },
+
+  async uploadPlayerImage(id: string, imageFile: File) {
+    const formData = new FormData();
+    formData.append('image', imageFile);
+    const response = await apiClient.post(`/players/${id}/upload-image`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data.data;
+  },
 };
 
 // ===================== TEAM API =====================

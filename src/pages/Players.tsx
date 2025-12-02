@@ -1,8 +1,13 @@
 import { Link } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Mail, Phone, MapPin, User, Loader } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, Mail, Phone, MapPin, User, Loader, Search, Pencil, Upload, X } from "lucide-react";
 import clubLogo from "@/assets/club-logo.png";
 import { playerAPI } from "@/lib/api";
 import { toast } from "sonner";
@@ -23,36 +28,67 @@ interface Player {
 
 const Players = () => {
   const [players, setPlayers] = useState<Player[]>([]);
+  const [filteredPlayers, setFilteredPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Edit dialog state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [editForm, setEditForm] = useState({ name: "", email: "", phone: "", role: "", place: "" });
+  const [newImageFile, setNewImageFile] = useState<File | null>(null);
+  const [newImagePreview, setNewImagePreview] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Image preview dialog
+  const [imageDialogOpen, setImageDialogOpen] = useState(false);
+  const [currentImage, setCurrentImage] = useState("");
+  const [imageTitle, setImageTitle] = useState("");
 
   // Resolve file URL - handles both base64 data URLs and server-relative paths
   const resolveFileUrl = (url: string): string => {
     if (!url) return "";
-    // If it's already a data URL (base64) or absolute URL, return as-is
     if (url.startsWith("data:") || url.startsWith("http://") || url.startsWith("https://")) {
       return url;
     }
-    // If it's a relative path (e.g., /uploads/...), prepend the backend URL
     return `${BACKEND_URL}${url}`;
   };
 
-  useEffect(() => {
-    const fetchPlayers = async () => {
-      try {
-        setLoading(true);
-        const data = await playerAPI.getAllPlayers(0, 100);
-        setPlayers(data.players || []);
-      } catch (error: any) {
-        toast.error("Failed to load players");
-        console.error(error);
-        setPlayers([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchPlayers = async () => {
+    try {
+      setLoading(true);
+      const data = await playerAPI.getAllPlayers(0, 500);
+      setPlayers(data.players || []);
+      setFilteredPlayers(data.players || []);
+    } catch (error: any) {
+      toast.error("Failed to load players");
+      console.error(error);
+      setPlayers([]);
+      setFilteredPlayers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchPlayers();
   }, []);
+
+  // Filter players based on search
+  useEffect(() => {
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      const filtered = players.filter(
+        (player) =>
+          player.name.toLowerCase().includes(term) ||
+          player.phone.includes(term)
+      );
+      setFilteredPlayers(filtered);
+    } else {
+      setFilteredPlayers(players);
+    }
+  }, [searchTerm, players]);
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
@@ -84,6 +120,63 @@ const Players = () => {
     }
   };
 
+  const openEditDialog = (player: Player) => {
+    setSelectedPlayer(player);
+    setEditForm({
+      name: player.name,
+      email: player.email || "",
+      phone: player.phone,
+      role: player.role,
+      place: player.place,
+    });
+    setNewImageFile(null);
+    setNewImagePreview(null);
+    setEditDialogOpen(true);
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setNewImageFile(file);
+      setNewImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleSavePlayer = async () => {
+    if (!selectedPlayer) return;
+    try {
+      setSaving(true);
+
+      // Update player details
+      await playerAPI.updatePlayer(selectedPlayer._id, {
+        name: editForm.name,
+        email: editForm.email || null,
+        phone: editForm.phone,
+        role: editForm.role,
+        place: editForm.place,
+      });
+
+      // Upload new image if selected
+      if (newImageFile) {
+        await playerAPI.uploadPlayerImage(selectedPlayer._id, newImageFile);
+      }
+
+      toast.success("Player updated successfully");
+      setEditDialogOpen(false);
+      fetchPlayers();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Failed to update player");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const viewImage = (url: string, title: string) => {
+    setCurrentImage(resolveFileUrl(url));
+    setImageTitle(title);
+    setImageDialogOpen(true);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-primary py-12 px-4">
       <div className="container mx-auto">
@@ -96,8 +189,29 @@ const Players = () => {
           <img src={clubLogo}  alt="Club Logo" className="mx-auto mb-4" style={{height:"20vh", objectFit: "cover"}}/>
           <h1 className="text-4xl font-bold text-primary-foreground mb-2">Registered Players</h1>
           <p className="text-primary-foreground/80">
-            {loading ? "Loading..." : `${players.length} ${players.length === 1 ? 'player' : 'players'} registered`}
+            {loading ? "Loading..." : `${filteredPlayers.length} of ${players.length} ${players.length === 1 ? 'player' : 'players'}`}
           </p>
+        </div>
+
+        {/* Search Box */}
+        <div className="max-w-md mx-auto mb-8">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Input
+              placeholder="Search by name or phone..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 bg-white"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm("")}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         </div>
 
         {loading ? (
@@ -113,13 +227,24 @@ const Players = () => {
               </Link>
             </CardContent>
           </Card>
+        ) : filteredPlayers.length === 0 ? (
+          <Card className="max-w-md mx-auto">
+            <CardContent className="pt-6 text-center">
+              <p className="text-muted-foreground mb-4">
+                {searchTerm ? "No players match your search" : "No players registered yet"}
+              </p>
+            </CardContent>
+          </Card>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {players.map((player) => (
+            {filteredPlayers.map((player) => (
               <Card key={player._id} className="shadow-card hover:shadow-hover transition-all duration-300 overflow-hidden">
                 <CardHeader className="bg-gradient-accent pb-4">
                   <div className="flex items-start gap-4">
-                    <div className="w-20 h-20 rounded-full bg-card flex items-center justify-center overflow-hidden shadow-lg">
+                    <div
+                      className="w-20 h-20 rounded-full bg-card flex items-center justify-center overflow-hidden shadow-lg cursor-pointer"
+                      onClick={() => player.image_url && viewImage(player.image_url, `${player.name}'s Photo`)}
+                    >
                       {player.image_url ? (
                         <img
                           src={resolveFileUrl(player.image_url)}
@@ -136,6 +261,14 @@ const Players = () => {
                         {getRoleLabel(player.role)}
                       </Badge>
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-white hover:bg-white/20"
+                      onClick={() => openEditDialog(player)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
                   </div>
                 </CardHeader>
                 <CardContent className="pt-4 space-y-3">
@@ -158,6 +291,84 @@ const Players = () => {
             ))}
           </div>
         )}
+
+        {/* Edit Player Dialog */}
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit Player</DialogTitle>
+              <DialogDescription>Update player details and image</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              {/* Image Section */}
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center overflow-hidden">
+                  {newImagePreview ? (
+                    <img src={newImagePreview} alt="Preview" className="w-full h-full object-cover" />
+                  ) : selectedPlayer?.image_url ? (
+                    <img src={resolveFileUrl(selectedPlayer.image_url)} alt={selectedPlayer.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <User className="w-12 h-12 text-muted-foreground" />
+                  )}
+                </div>
+                <input type="file" accept="image/*" ref={fileInputRef} onChange={handleImageSelect} className="hidden" />
+                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                  <Upload className="h-4 w-4 mr-2" /> Change Photo
+                </Button>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Name</Label>
+                <Input id="edit-name" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-phone">Phone</Label>
+                <Input id="edit-phone" value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-email">Email</Label>
+                <Input id="edit-email" type="email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-place">Place</Label>
+                <Input id="edit-place" value={editForm.place} onChange={(e) => setEditForm({ ...editForm, place: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-role">Role</Label>
+                <Select value={editForm.role} onValueChange={(value) => setEditForm({ ...editForm, role: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bat">Batsman</SelectItem>
+                    <SelectItem value="ball">Bowler</SelectItem>
+                    <SelectItem value="wk">Wicket Keeper</SelectItem>
+                    <SelectItem value="all-rounder">All-Rounder</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+              <Button onClick={handleSavePlayer} disabled={saving}>
+                {saving ? <Loader className="h-4 w-4 animate-spin mr-2" /> : null}
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Image View Dialog */}
+        <Dialog open={imageDialogOpen} onOpenChange={setImageDialogOpen}>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>{imageTitle}</DialogTitle>
+            </DialogHeader>
+            <div className="flex justify-center">
+              <img src={currentImage} alt={imageTitle} className="max-h-[70vh] object-contain rounded-lg" />
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

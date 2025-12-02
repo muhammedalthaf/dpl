@@ -78,6 +78,7 @@ class PlayerController:
             query = {
                 "$or": [
                     {"name": {"$regex": search, "$options": "i"}},
+                    {"phone": {"$regex": search, "$options": "i"}},
                     {"place": {"$regex": search, "$options": "i"}},
                 ]
             }
