@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Mail, Phone, MapPin, User, Loader, Search, Pencil, Upload, X } from "lucide-react";
+import { ArrowLeft, Mail, Phone, MapPin, User, Loader, Search, Pencil, Upload, X, Trash2 } from "lucide-react";
 import clubLogo from "@/assets/club-logo.png";
 import { playerAPI } from "@/lib/api";
 import { toast } from "sonner";
@@ -46,6 +46,12 @@ const Players = () => {
   const [currentImage, setCurrentImage] = useState("");
   const [imageTitle, setImageTitle] = useState("");
 
+  // Delete confirmation dialog
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [playerToDelete, setPlayerToDelete] = useState<Player | null>(null);
+  const [deleteConfirmPhone, setDeleteConfirmPhone] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
   // Resolve file URL - handles both base64 data URLs and server-relative paths
   const resolveFileUrl = (url: string): string => {
     if (!url) return "";
@@ -58,7 +64,7 @@ const Players = () => {
   const fetchPlayers = async () => {
     try {
       setLoading(true);
-      const data = await playerAPI.getAllPlayers(0, 500);
+      const data = await playerAPI.getAllPlayers(0, 100);
       setPlayers(data.players || []);
       setFilteredPlayers(data.players || []);
     } catch (error: any) {
@@ -177,6 +183,32 @@ const Players = () => {
     setImageDialogOpen(true);
   };
 
+  const openDeleteDialog = (player: Player) => {
+    setPlayerToDelete(player);
+    setDeleteConfirmPhone("");
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeletePlayer = async () => {
+    if (!playerToDelete) return;
+    if (deleteConfirmPhone !== playerToDelete.phone) {
+      toast.error("Phone number doesn't match");
+      return;
+    }
+    try {
+      setDeleting(true);
+      await playerAPI.deletePlayer(playerToDelete._id);
+      toast.success("Player deleted successfully");
+      setDeleteDialogOpen(false);
+      setPlayerToDelete(null);
+      fetchPlayers();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Failed to delete player");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-primary py-12 px-4">
       <div className="container mx-auto">
@@ -261,14 +293,24 @@ const Players = () => {
                         {getRoleLabel(player.role)}
                       </Badge>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-white hover:bg-white/20"
-                      onClick={() => openEditDialog(player)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-white hover:bg-white/20"
+                        onClick={() => openEditDialog(player)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-white hover:bg-red-500/80"
+                        onClick={() => openDeleteDialog(player)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="pt-4 space-y-3">
@@ -367,6 +409,49 @@ const Players = () => {
             <div className="flex justify-center">
               <img src={currentImage} alt={imageTitle} className="max-h-[70vh] object-contain rounded-lg" />
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-red-600">Delete Player</DialogTitle>
+              <DialogDescription>
+                This action cannot be undone. This will permanently delete the player.
+              </DialogDescription>
+            </DialogHeader>
+            {playerToDelete && (
+              <div className="space-y-4 py-4">
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="font-medium text-red-800">You are about to delete:</p>
+                  <p className="text-red-700 mt-1"><strong>{playerToDelete.name}</strong></p>
+                  <p className="text-red-600 text-sm mt-1">Phone: {playerToDelete.phone}</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-phone" className="text-sm">
+                    To confirm, enter the player's phone number: <strong>{playerToDelete.phone}</strong>
+                  </Label>
+                  <Input
+                    id="confirm-phone"
+                    placeholder="Enter phone number to confirm"
+                    value={deleteConfirmPhone}
+                    onChange={(e) => setDeleteConfirmPhone(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+              <Button
+                variant="destructive"
+                onClick={handleDeletePlayer}
+                disabled={deleting || deleteConfirmPhone !== playerToDelete?.phone}
+              >
+                {deleting ? <Loader className="h-4 w-4 animate-spin mr-2" /> : null}
+                Delete Player
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>

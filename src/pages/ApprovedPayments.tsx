@@ -26,7 +26,7 @@ const ApprovedPayments = () => {
   const fetchApprovedPlayers = async () => {
     try {
       setLoading(true);
-      const data = await registrationAPI.getApprovedWithPayments(0, 500);
+      const data = await registrationAPI.getApprovedWithPayments(0, 100);
       setApprovedPlayers(data.approved_players || []);
       setFilteredPlayers(data.approved_players || []);
     } catch (error: any) {
