@@ -14,4 +14,11 @@ export const panchayats = [
   "Purameri",
   "Valayam",
   "Naripatta",
+  "Perambra",
+  "Vadakara",
+  "Kayanna",
+  "Ayancheri",
+  "Edacheri",
+  "Chakkittappara",
+  "Villiappally"
 ];
