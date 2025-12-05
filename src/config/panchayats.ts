@@ -20,5 +20,6 @@ export const panchayats = [
   "Ayancheri",
   "Edacheri",
   "Chakkittappara",
-  "Villiappally"
+  "Villiappally",
+  "Nochad"
 ];
