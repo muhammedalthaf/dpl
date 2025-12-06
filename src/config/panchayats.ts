@@ -14,7 +14,7 @@ export const panchayats = [
   "Purameri",
   "Valayam",
   "Naripatta",
-
+  "Tiruvallur",
   "Ayancheri",
   "Edacheri",
   "Chakkittappara",
