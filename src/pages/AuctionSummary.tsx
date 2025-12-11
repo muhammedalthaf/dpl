@@ -1,7 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -13,325 +11,396 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowLeft, BarChart3, RefreshCcw, Users, Loader2 } from "lucide-react";
-import { AuctionPlayer } from "@/types";
-import { auctionAPI, teamAPI } from "@/lib/api";
-import { toast } from "sonner";
+import { BarChart3, Users, Loader2, TrendingUp, Clock, Gavel } from "lucide-react";
+import { auctionAPI } from "@/lib/api";
 import clubLogo from "@/assets/club-logo.png";
 
-type StatusFilter = "pending" | "live" | "sold" | "unsold";
-
-const statusLabels: Record<StatusFilter, string> = {
-  pending: "Remaining Players",
-  live: "In Auction",
-  sold: "Sold Players",
-  unsold: "Unsold Players",
+// Helper to resolve file URL
+const BACKEND_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:8000';
+const resolveFileUrl = (url: string) => {
+  if (!url) return "";
+  if (url.startsWith("data:") || url.startsWith("http")) return url;
+  return `${BACKEND_URL}${url.startsWith("/") ? "" : "/"}${url}`;
 };
 
+interface AuctionStats {
+  total_players: number;
+  pending: number;
+  live: number;
+  sold: number;
+  unsold: number;
+  total_auction_value: number;
+  average_player_value: number;
+}
+
+interface LivePlayer {
+  _id: string;
+  name: string;
+  role: string;
+  image_url?: string;
+  base_price: number;
+  auction_status: string;
+  highest_bid?: {
+    amount: number;
+    team_name: string;
+    team_id: string;
+  } | null;
+}
+
+interface RecentActivity {
+  _id: string;
+  player_id: string;
+  player_name: string;
+  player_status: string;
+  player_image?: string;
+  team_name: string;
+  amount: number;
+  timestamp: string;
+}
+
+interface TeamProgress {
+  _id: string;
+  name: string;
+  icon_url?: string;
+  owner_name: string;
+  purse_balance: number;
+  total_spent: number;
+  players_count: number;
+  players: any[];
+}
+
+interface SummaryData {
+  stats: AuctionStats;
+  live_players: LivePlayer[];
+  recent_activity: RecentActivity[];
+  team_progress: TeamProgress[];
+}
+
+const AUTO_REFRESH_INTERVAL = 10000; // 10 seconds
+
 const AuctionSummary = () => {
-  const [auctionPlayers, setAuctionPlayers] = useState<AuctionPlayer[]>([]);
-  const [teams, setTeams] = useState<any[]>([]);
+  const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [statusDialog, setStatusDialog] = useState<{ open: boolean; status: StatusFilter }>({
+  const [teamDialog, setTeamDialog] = useState<{ open: boolean; team: TeamProgress | null }>({
     open: false,
-    status: "pending",
+    team: null,
   });
-  const [teamDialog, setTeamDialog] = useState<{ open: boolean; teamId: string | null }>({
-    open: false,
-    teamId: null,
-  });
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [playersData, teamsData] = await Promise.all([
-          auctionAPI.getAllAuctionPlayers(0, 200),
-          teamAPI.getAllTeams(0, 100),
-        ]);
-        setAuctionPlayers(Array.isArray(playersData) ? playersData : playersData.players || []);
-        setTeams(Array.isArray(teamsData) ? teamsData : teamsData.teams || []);
-      } catch (error: any) {
-        toast.error("Failed to load auction data");
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
-
-  const refreshState = async () => {
+  const fetchData = async (showLoading = true) => {
     try {
-      const [playersData, teamsData] = await Promise.all([
-        auctionAPI.getAllAuctionPlayers(0, 200),
-        teamAPI.getAllTeams(0, 100),
-      ]);
-      setAuctionPlayers(Array.isArray(playersData) ? playersData : playersData.players || []);
-      setTeams(Array.isArray(teamsData) ? teamsData : teamsData.teams || []);
-      toast.success("Auction data refreshed");
-    } catch (error) {
-      toast.error("Failed to refresh");
+      if (showLoading) setLoading(true);
+      const data = await auctionAPI.getAuctionSummary();
+      setSummaryData(data);
+      setLastUpdated(new Date());
+    } catch (error: any) {
+      console.error("Failed to load auction data", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const groupedByStatus = useMemo(() => {
-    return auctionPlayers.reduce<Record<StatusFilter, AuctionPlayer[]>>(
-      (acc, player) => {
-        const status = (player.auction_status as StatusFilter) || "pending";
-        if (!acc[status]) acc[status] = [];
-        acc[status].push(player);
-        return acc;
-      },
-      {
-        pending: [],
-        live: [],
-        sold: [],
-        unsold: [],
+  useEffect(() => {
+    // Initial fetch
+    fetchData();
+
+    // Set up auto-refresh
+    intervalRef.current = setInterval(() => {
+      fetchData(false); // Don't show loading spinner on auto-refresh
+    }, AUTO_REFRESH_INTERVAL);
+
+    // Cleanup on unmount
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
       }
-    );
-  }, [auctionPlayers]);
-
-  const totalPlayers = auctionPlayers.length;
-  const remainingPlayers = groupedByStatus.pending.length;
-  const livePlayers = groupedByStatus.live.length;
-  const soldPlayers = groupedByStatus.sold.length;
-
-  const teamSummaries = teams.map((team) => {
-    const players = auctionPlayers.filter((player) => player.sold_to_team_id === team._id);
-    const totalBid = players.reduce((sum, player) => sum + (player.sold_price || 0), 0);
-    return {
-      team,
-      count: players.length,
-      totalBid,
-      players,
     };
-  });
+  }, []);
 
-  const renderPlayerList = (players: AuctionPlayer[]) => (
-    <ScrollArea className="h-64">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Player</TableHead>
-            <TableHead>Role</TableHead>
-            <TableHead>Base Price</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Sold Price</TableHead>
-            <TableHead>Team</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {players.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={6} className="text-center text-muted-foreground">
-                No players in this list
-              </TableCell>
-            </TableRow>
-          ) : (
-            players.map((player) => (
-              <TableRow key={player._id}>
-                <TableCell className="font-medium">{player.name}</TableCell>
-                <TableCell>
-                  <Badge variant="outline">{player.role}</Badge>
-                </TableCell>
-                <TableCell>₹{player.base_price.toLocaleString()}</TableCell>
-                <TableCell>
-                  <Badge
-                    variant={
-                      player.auction_status === "sold"
-                        ? "default"
-                        : player.auction_status === "live"
-                        ? "secondary"
-                        : player.auction_status === "unsold"
-                        ? "destructive"
-                        : "outline"
-                    }
-                  >
-                    {player.auction_status}
-                  </Badge>
-                </TableCell>
-                <TableCell>{player.sold_price ? `₹${player.sold_price.toLocaleString()}` : "-"}</TableCell>
-                <TableCell>
-                  {player.sold_to_team_id ? (
-                    <div className="flex items-center gap-2">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage
-                          src={
-                            teams.find((team) => team._id === player.sold_to_team_id)?.icon_url || clubLogo
-                          }
-                          alt="Team logo"
-                          style={{ objectFit: "cover" }}
-                        />
-                        <AvatarFallback>TM</AvatarFallback>
-                      </Avatar>
-                      <span>
-                        {teams.find((team) => team._id === player.sold_to_team_id)?.name ?? "-"}
-                      </span>
-                    </div>
-                  ) : (
-                    "-"
-                  )}
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-    </ScrollArea>
-  );
+  const stats = summaryData?.stats;
+  const livePlayers = summaryData?.live_players || [];
+  const recentActivity = summaryData?.recent_activity || [];
+  const teamProgress = summaryData?.team_progress || [];
 
-  const selectedStatusPlayers = groupedByStatus[statusDialog.status] || [];
-
-  const selectedTeamPlayers =
-    teamDialog.teamId === null
-      ? []
-      : auctionState.players.filter((player) => player.soldToTeamId === teamDialog.teamId);
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "sold":
+        return <Badge className="bg-green-500">SOLD</Badge>;
+      case "live":
+        return <Badge className="bg-yellow-500">LIVE</Badge>;
+      case "unsold":
+        return <Badge variant="destructive">UNSOLD</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-primary py-10 px-4">
+    <div className="min-h-screen bg-gradient-primary py-6 px-4">
       <div className="container mx-auto space-y-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <Link
-            to="/admin"
-            className="inline-flex items-center text-primary-foreground hover:text-primary-foreground/80 transition-colors"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Admin
-          </Link>
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
-            <Button variant="outline" onClick={refreshState} className="w-full sm:w-auto" disabled={loading}>
-              <RefreshCcw className="h-4 w-4 mr-2" />
-              Refresh
-            </Button>
-            <Button asChild className="w-full sm:w-auto">
-              <Link to="/admin/auction/control">Go to Auction Room</Link>
-            </Button>
-          </div>
-        </div>
-
+        {/* Header */}
         <div className="text-center text-primary-foreground space-y-2">
-          <p className="uppercase tracking-wide text-sm text-primary-foreground/70">Live Overview</p>
-          <h1 className="text-4xl font-bold flex items-center justify-center gap-3">
-            <BarChart3 className="h-8 w-8" />
+          <h1 className="text-3xl font-bold flex items-center justify-center gap-3">
+            <BarChart3 className="h-7 w-7" />
             Auction Summary
           </h1>
-          <p className="text-primary-foreground/80">
-            Track player availability, bids, and team purse utilization in real-time.
-          </p>
+          {lastUpdated && (
+            <p className="text-xs text-primary-foreground/60">
+              Auto-refreshes every 10s · Last updated: {lastUpdated.toLocaleTimeString()}
+            </p>
+          )}
         </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <div className="flex flex-col items-center gap-4">
-              <Loader2 className="h-12 w-12 animate-spin text-primary-foreground" />
-              <p className="text-primary-foreground">Loading auction data...</p>
-            </div>
+            <Loader2 className="h-12 w-12 animate-spin text-primary-foreground" />
           </div>
         ) : (
-        <div>
-        <div className="grid md:grid-cols-4 gap-4">
-          <Card className="shadow-card bg-card/80">
-            <CardHeader>
-              <CardTitle>Total Players</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-4xl font-bold">{totalPlayers}</p>
-              <p className="text-sm text-muted-foreground mt-2">
-                {soldPlayers} sold · {remainingPlayers} remaining
-              </p>
-            </CardContent>
-          </Card>
+          <div className="space-y-6">
+            {/* Stats Row */}
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+              <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white">
+                <CardContent className="p-4 text-center">
+                  <TrendingUp className="h-6 w-6 mx-auto mb-1 opacity-80" />
+                  <p className="text-2xl font-bold">₹{(stats?.total_auction_value || 0).toLocaleString()}</p>
+                  <p className="text-xs opacity-80">Total Value</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-card/90">
+                <CardContent className="p-4 text-center">
+                  <p className="text-3xl font-bold">{stats?.total_players || 0}</p>
+                  <p className="text-xs text-muted-foreground">Total Players</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-blue-50 dark:bg-blue-950/30">
+                <CardContent className="p-4 text-center">
+                  <p className="text-3xl font-bold text-blue-600">{stats?.pending || 0}</p>
+                  <p className="text-xs text-muted-foreground">Pending</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-yellow-50 dark:bg-yellow-950/30">
+                <CardContent className="p-4 text-center">
+                  <p className="text-3xl font-bold text-yellow-600">{stats?.live || 0}</p>
+                  <p className="text-xs text-muted-foreground">Live</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-green-50 dark:bg-green-950/30">
+                <CardContent className="p-4 text-center">
+                  <p className="text-3xl font-bold text-green-600">{stats?.sold || 0}</p>
+                  <p className="text-xs text-muted-foreground">Sold</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-red-50 dark:bg-red-950/30">
+                <CardContent className="p-4 text-center">
+                  <p className="text-3xl font-bold text-red-600">{stats?.unsold || 0}</p>
+                  <p className="text-xs text-muted-foreground">Unsold</p>
+                </CardContent>
+              </Card>
+            </div>
 
-          {(["pending", "live", "sold"] as StatusFilter[]).map((status) => (
-            <Card
-              key={status}
-              className="shadow-card bg-card/90 cursor-pointer hover:shadow-hover transition"
-              onClick={() => setStatusDialog({ open: true, status })}
-            >
-              <CardHeader>
-                <CardTitle>{statusLabels[status]}</CardTitle>
+            {/* Live Players & Recent Activity Row */}
+            <div className="grid md:grid-cols-2 gap-4">
+              {/* Live Players */}
+              <Card className="shadow-card">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Gavel className="h-5 w-5 text-yellow-500" />
+                    Live Auction ({livePlayers.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {livePlayers.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-8">No players currently in auction</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {livePlayers.map((player) => (
+                        <div key={player._id} className="flex items-center gap-3 p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-200 dark:border-yellow-900">
+                          <Avatar className="h-14 w-14 border-2 border-yellow-400">
+                            <AvatarImage src={resolveFileUrl(player.image_url || "")} alt={player.name} />
+                            <AvatarFallback>{player.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold truncate">{player.name}</p>
+                            <p className="text-sm text-muted-foreground">{player.role} · Base: ₹{player.base_price}</p>
+                          </div>
+                          <div className="text-right">
+                            {player.highest_bid ? (
+                              <>
+                                <p className="text-xl font-bold text-green-600">₹{player.highest_bid.amount.toLocaleString()}</p>
+                                <p className="text-xs text-muted-foreground">{player.highest_bid.team_name}</p>
+                              </>
+                            ) : (
+                              <p className="text-sm text-muted-foreground">No bids yet</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Recent Activity */}
+              <Card className="shadow-card">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Clock className="h-5 w-5 text-blue-500" />
+                    Recent Bids
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {recentActivity.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-8">No recent activity</p>
+                  ) : (
+                    <ScrollArea className="h-[300px]">
+                      <div className="space-y-2">
+                        {recentActivity.map((activity) => (
+                          <div key={activity._id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50">
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage src={resolveFileUrl(activity.player_image || "")} alt={activity.player_name} />
+                              <AvatarFallback>{activity.player_name?.slice(0, 2).toUpperCase()}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium truncate">{activity.player_name}</p>
+                                {getStatusBadge(activity.player_status)}
+                              </div>
+                              <p className="text-sm text-muted-foreground">
+                                {activity.team_name} bid <span className="font-semibold text-foreground">₹{activity.amount.toLocaleString()}</span>
+                              </p>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(activity.timestamp).toLocaleTimeString()}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Team Progress */}
+            <Card className="shadow-card">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-primary" />
+                  Team Progress
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-4xl font-bold">{groupedByStatus[status]?.length ?? 0}</p>
-                <p className="text-sm text-muted-foreground mt-2">Tap to view list</p>
+                {teamProgress.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-8">No teams found</p>
+                ) : (
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {teamProgress.map((team) => (
+                      <Card
+                        key={team._id}
+                        className="bg-card/80 cursor-pointer hover:shadow-md transition"
+                        onClick={() => setTeamDialog({ open: true, team })}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-center gap-3 mb-3">
+                            <Avatar className="h-12 w-12">
+                              <AvatarImage src={resolveFileUrl(team.icon_url || "")} alt={team.name} style={{ objectFit: "cover" }} />
+                              <AvatarFallback>{team.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold truncate">{team.name}</p>
+                              <p className="text-xs text-muted-foreground truncate">{team.owner_name}</p>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2 text-center">
+                            <div className="bg-blue-50 dark:bg-blue-950/30 rounded p-2">
+                              <p className="text-lg font-bold text-blue-600">{team.players_count}</p>
+                              <p className="text-[10px] text-muted-foreground">Players</p>
+                            </div>
+                            <div className="bg-red-50 dark:bg-red-950/30 rounded p-2">
+                              <p className="text-sm font-bold text-red-600">₹{(team.total_spent / 1000).toFixed(1)}k</p>
+                              <p className="text-[10px] text-muted-foreground">Spent</p>
+                            </div>
+                            <div className="bg-green-50 dark:bg-green-950/30 rounded p-2">
+                              <p className="text-sm font-bold text-green-600">₹{(team.purse_balance / 1000).toFixed(1)}k</p>
+                              <p className="text-[10px] text-muted-foreground">Left</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
-          ))}
-        </div>
-
-        <Card className="shadow-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-primary" />
-              Team-wise Auction Progress
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-3 gap-4">
-              {teamSummaries.map(({ team, count, totalBid }) => (
-                <Card key={team._id} className="bg-card/80 shadow-sm">
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-3">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={team.icon_url || clubLogo} alt={team.name} style={{ objectFit: "cover" }}/>
-                        <AvatarFallback>{team.name.slice(0, 2).toUpperCase()}</AvatarFallback>
-                      </Avatar>
-                      {team.name}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Players won</p>
-                      <button
-                        className="text-3xl font-bold text-left hover:text-primary transition"
-                        onClick={() => setTeamDialog({ open: true, teamId: team.id })}
-                      >
-                        {count}
-                      </button>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Total Spent</p>
-                      <p className="text-2xl font-semibold">
-                        ₹{totalBid.toLocaleString()}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-        </div>
+          </div>
         )}
       </div>
 
-      <Dialog open={statusDialog.open} onOpenChange={(open) => setStatusDialog((prev) => ({ ...prev, open }))}>
-        <DialogContent className="max-w-4xl">
+      {/* Team Dialog */}
+      <Dialog open={teamDialog.open} onOpenChange={(open) => setTeamDialog({ open, team: open ? teamDialog.team : null })}>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{statusLabels[statusDialog.status]}</DialogTitle>
-            <DialogDescription>
-              Showing {groupedByStatus[statusDialog.status]?.length ?? 0} player(s) marked as{" "}
-              {statusDialog.status}.
-            </DialogDescription>
-          </DialogHeader>
-          {renderPlayerList(selectedStatusPlayers)}
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={teamDialog.open} onOpenChange={(open) => setTeamDialog((prev) => ({ ...prev, open }))}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>
-              {teamDialog.teamId
-                ? teams.find((team) => team._id === teamDialog.teamId)?.name ?? "Team"
-                : "Team"}
+            <DialogTitle className="flex items-center gap-3">
+              <Avatar className="h-10 w-10">
+                <AvatarImage src={resolveFileUrl(teamDialog.team?.icon_url || "")} alt={teamDialog.team?.name} />
+                <AvatarFallback>{teamDialog.team?.name?.slice(0, 2).toUpperCase()}</AvatarFallback>
+              </Avatar>
+              {teamDialog.team?.name}
             </DialogTitle>
             <DialogDescription>
-              {selectedTeamPlayers.length} player(s) purchased in this auction.
+              {teamDialog.team?.players_count} player(s)
+              {teamDialog.team?.icon_players_count ? ` (${teamDialog.team.icon_players_count} icon)` : ""}
+              · Spent: ₹{teamDialog.team?.total_spent.toLocaleString()}
+              · Balance: ₹{teamDialog.team?.purse_balance.toLocaleString()}
             </DialogDescription>
           </DialogHeader>
-          {renderPlayerList(selectedTeamPlayers)}
+          <ScrollArea className="max-h-[400px]">
+            {teamDialog.team?.players && teamDialog.team.players.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Player</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead className="text-right">Price</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {teamDialog.team.players.map((player: any) => (
+                    <TableRow key={player._id} className={player.is_icon_player ? "bg-purple-50 dark:bg-purple-950/20" : ""}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage src={resolveFileUrl(player.image_url || "")} alt={player.name} />
+                            <AvatarFallback>{player.name?.slice(0, 2).toUpperCase()}</AvatarFallback>
+                          </Avatar>
+                          <span className="font-medium">{player.name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{player.role}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        {player.is_icon_player ? (
+                          <Badge className="bg-purple-500 hover:bg-purple-600">
+                            ⭐ ICON
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary">Auction</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right font-semibold text-green-600">
+                        {player.is_icon_player ? "-" : `₹${(player.sold_price || 0).toLocaleString()}`}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <p className="text-center text-muted-foreground py-8">No players purchased yet</p>
+            )}
+          </ScrollArea>
         </DialogContent>
       </Dialog>
     </div>

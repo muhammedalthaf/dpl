@@ -39,6 +39,14 @@ class PlayerBase(BaseModel):
     role: PlayerRole
     place: str = Field(..., min_length=1, max_length=100)
     image_url: Optional[str] = None
+    # Auction-related fields (optional - players can exist without being in auction)
+    base_price: Optional[int] = Field(default=None, gt=0)
+    auction_status: Optional[AuctionStatus] = None
+    is_icon_player: bool = False
+    icon_player_team_id: Optional[str] = None
+    auction_order: Optional[int] = None
+    sold_price: Optional[int] = None
+    sold_to_team_id: Optional[str] = None
 
 
 class PlayerCreate(PlayerBase):
@@ -52,6 +60,14 @@ class PlayerUpdate(BaseModel):
     role: Optional[PlayerRole] = None
     place: Optional[str] = None
     image_url: Optional[str] = None
+    # Auction-related fields
+    base_price: Optional[int] = None
+    auction_status: Optional[AuctionStatus] = None
+    is_icon_player: Optional[bool] = None
+    icon_player_team_id: Optional[str] = None
+    auction_order: Optional[int] = None
+    sold_price: Optional[int] = None
+    sold_to_team_id: Optional[str] = None
 
 
 class Player(PlayerBase):
@@ -63,39 +79,34 @@ class Player(PlayerBase):
         populate_by_name = True
 
 
-# ===================== AUCTION PLAYER SCHEMAS =====================
-class AuctionPlayerBase(PlayerBase):
-    base_price: int = Field(..., gt=0)
-    auction_status: AuctionStatus = AuctionStatus.PENDING
+# ===================== AUCTION PLAYER SCHEMAS (Aliases for backward compatibility) =====================
+# These now just reference the Player schemas since auction fields are in Player
+AuctionPlayerCreate = PlayerCreate
+AuctionPlayerUpdate = PlayerUpdate
+AuctionPlayer = Player
 
 
-class AuctionPlayerCreate(AuctionPlayerBase):
-    pass
-
-
-class AuctionPlayerUpdate(BaseModel):
-    base_price: Optional[int] = None
-    auction_status: Optional[AuctionStatus] = None
-
-
-class AuctionPlayer(AuctionPlayerBase):
-    id: str = Field(alias="_id")
-    sold_price: Optional[int] = None
-    sold_to_team_id: Optional[str] = None
-    created_at: datetime
-    updated_at: datetime
-
-    class Config:
-        populate_by_name = True
+# ===================== AUCTION ORDER SCHEMAS =====================
+class AuctionOrderUpdate(BaseModel):
+    player_id: str
+    new_order: int = Field(..., ge=1)
 
 
 # ===================== TEAM SCHEMAS =====================
+# Constants for team purse and icon players
+DEFAULT_PURSE_BALANCE = 8000
+ICON_PLAYER_COST = 1500
+MAX_ICON_PLAYERS = 2
+
+
 class TeamBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     owner_name: str = Field(..., min_length=1, max_length=100)
     owner_contact: str = Field(..., min_length=10, max_length=15)
     owner_details: Optional[str] = None
     icon_url: Optional[str] = None
+    purse_balance: int = Field(default=DEFAULT_PURSE_BALANCE)
+    icon_player_ids: List[str] = Field(default_factory=list)
 
 
 class TeamCreate(TeamBase):
@@ -108,6 +119,8 @@ class TeamUpdate(BaseModel):
     owner_contact: Optional[str] = None
     owner_details: Optional[str] = None
     icon_url: Optional[str] = None
+    purse_balance: Optional[int] = None
+    icon_player_ids: Optional[List[str]] = None
 
 
 class Team(TeamBase):
@@ -117,6 +130,12 @@ class Team(TeamBase):
 
     class Config:
         populate_by_name = True
+
+
+# ===================== ICON PLAYER SCHEMAS =====================
+class IconPlayerAssign(BaseModel):
+    player_id: str
+    team_id: str
 
 
 # ===================== BID SCHEMAS =====================

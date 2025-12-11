@@ -10,6 +10,7 @@ from database import connect_to_mongo, close_mongo_connection
 # Import routes
 from routes import players, teams, bids, auction, registrations
 from routes import settings as settings_routes
+from routes.icon_players import router as icon_players_router, auction_order_router
 
 # Create upload directories (relative to application directory)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -83,6 +84,8 @@ app.include_router(bids.router, prefix="/api")
 app.include_router(auction.router, prefix="/api")
 app.include_router(registrations.router, prefix="/api")
 app.include_router(settings_routes.router, prefix="/api")
+app.include_router(icon_players_router, prefix="/api")
+app.include_router(auction_order_router, prefix="/api")
 
 # Mount static files for uploads
 app.mount("/uploads", StaticFiles(directory=UPLOAD_BASE_DIR), name="uploads")

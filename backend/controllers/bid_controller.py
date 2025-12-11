@@ -16,7 +16,7 @@ class BidController:
         db = get_database()
 
         # Validate player and team exist
-        auction_players = db["auction_players"]
+        players = db["players"]
         teams = db["teams"]
 
         if not validate_object_id(bid_data.player_id) or not validate_object_id(bid_data.team_id):
@@ -25,7 +25,7 @@ class BidController:
                 detail="Invalid player or team ID",
             )
 
-        player = await auction_players.find_one({"_id": ObjectId(bid_data.player_id)})
+        player = await players.find_one({"_id": ObjectId(bid_data.player_id)})
         if not player:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -39,6 +39,14 @@ class BidController:
                 detail="Team not found",
             )
 
+        # Check team has enough purse balance
+        purse_balance = team.get("purse_balance", 8000)
+        if bid_data.amount > purse_balance:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Insufficient purse balance. Team has ₹{purse_balance}, bid amount is ₹{bid_data.amount}",
+            )
+
         # Get highest bid for validation
         bids_collection = db["bids"]
         highest_bid = await bids_collection.find_one(
@@ -46,14 +54,22 @@ class BidController:
             sort=[("amount", -1)]
         )
 
-        base_price = player.get("base_price", 0)
-        min_bid_amount = base_price if not highest_bid else highest_bid.get("amount", 0)
+        base_price = player.get("base_price", 100)
 
-        if bid_data.amount <= min_bid_amount:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Bid amount must be greater than {min_bid_amount}",
-            )
+        # First bid: must be >= base price
+        # Subsequent bids: must be > highest bid
+        if not highest_bid:
+            if bid_data.amount < base_price:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"First bid must be at least {base_price} (base price)",
+                )
+        else:
+            if bid_data.amount <= highest_bid.get("amount", 0):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Bid amount must be greater than {highest_bid.get('amount', 0)}",
+                )
 
         bid_doc = {
             **bid_data.model_dump(),
@@ -64,8 +80,8 @@ class BidController:
 
         result = await bids_collection.insert_one(bid_doc)
 
-        # Update auction player status
-        await auction_players.update_one(
+        # Update player auction status to live
+        await players.update_one(
             {"_id": ObjectId(bid_data.player_id)},
             {
                 "$set": {

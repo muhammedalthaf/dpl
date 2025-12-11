@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
-import { Users, Trophy, Hammer, BarChart3, ClipboardList, LogOut, Clock, CheckCircle, XCircle, UserCheck, Receipt } from "lucide-react";
+import { Users, Trophy, Hammer, ClipboardList, LogOut, Clock, CheckCircle, XCircle, UserCheck, Receipt, Star } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { settingsAPI, registrationAPI } from "@/lib/api";
 import { toast } from "sonner";
@@ -211,16 +211,16 @@ const AdminHome = () => {
             </div>
           </Link>
 
-          <Link to="/admin/auction/summary" className="group">
+          <Link to="/admin/auction/icon-players" className="group">
             <div className="bg-card rounded-xl p-8 shadow-card hover:shadow-hover transition-all duration-300 transform hover:-translate-y-1">
               <div className="bg-gradient-accent rounded-full w-16 h-16 flex items-center justify-center mb-4 mx-auto group-hover:scale-110 transition-transform">
-                <BarChart3 className="w-8 h-8 text-card" />
+                <Star className="w-8 h-8 text-card" />
               </div>
               <h3 className="text-2xl font-bold text-card-foreground mb-2 text-center">
-                Auction Summary
+                Icon Players
               </h3>
               <p className="text-muted-foreground text-center">
-                Track progress and team spends
+                Assign icon players to teams
               </p>
             </div>
           </Link>

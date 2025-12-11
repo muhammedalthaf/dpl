@@ -9,6 +9,9 @@ import TeamForm, { TeamFormResult } from "@/components/TeamForm";
 import { teamAPI } from "@/lib/api";
 import { toast } from "sonner";
 
+// Backend server URL for resolving uploaded file paths
+const BACKEND_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:8000';
+
 interface Team {
   _id: string;
   name: string;
@@ -23,6 +26,15 @@ const Teams = () => {
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  // Resolve file URL - handles both base64 data URLs and server-relative paths
+  const resolveFileUrl = (url: string): string => {
+    if (!url) return "";
+    if (url.startsWith("data:") || url.startsWith("http://") || url.startsWith("https://")) {
+      return url;
+    }
+    return `${BACKEND_URL}${url}`;
+  };
 
   useEffect(() => {
     const fetchTeams = async () => {
@@ -150,7 +162,7 @@ const Teams = () => {
                   <div className="flex items-start gap-4">
                     <div className="w-16 h-16 rounded-full bg-card flex items-center justify-center overflow-hidden shadow-lg">
                       <img
-                        src={team.icon_url || clubLogo}
+                        src={team.icon_url ? resolveFileUrl(team.icon_url) : clubLogo}
                         alt={team.name}
                         className="w-full h-full object-cover"
                       />

@@ -29,7 +29,7 @@ async def get_auction_player(player_id: str):
 @router.get("/players", summary="Get all auction players")
 async def get_all_auction_players(
     skip: int = Query(0, ge=0),
-    limit: int = Query(10, ge=1, le=100),
+    limit: int = Query(10, ge=1, le=500),
 ):
     """Get all players in auction"""
     try:

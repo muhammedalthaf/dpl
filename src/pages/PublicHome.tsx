@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { UserPlus } from "lucide-react";
+import { UserPlus, BarChart3, Image } from "lucide-react";
 import clubLogo from "@/assets/club-logo.png";
 
 const PublicHome = () => {
@@ -23,10 +23,10 @@ const PublicHome = () => {
           </p>
         </div>
 
-        {/* Register Card */}
-        <div className="flex justify-center mt-12">
+        {/* Action Cards */}
+        <div className="flex flex-wrap justify-center gap-6 mt-12">
           <Link to="/register" className="group">
-            <div className="bg-card rounded-xl p-8 shadow-card hover:shadow-hover transition-all duration-300 transform hover:-translate-y-1 min-w-[300px]">
+            <div className="bg-card rounded-xl p-8 shadow-card hover:shadow-hover transition-all duration-300 transform hover:-translate-y-1 min-w-[280px]">
               <div className="bg-gradient-accent rounded-full w-16 h-16 flex items-center justify-center mb-4 mx-auto group-hover:scale-110 transition-transform">
                 <UserPlus className="w-8 h-8 text-card" />
               </div>
@@ -35,6 +35,34 @@ const PublicHome = () => {
               </h3>
               <p className="text-muted-foreground text-center">
                 Sign up for DPL Season 1
+              </p>
+            </div>
+          </Link>
+
+          <Link to="/auction-summary" className="group">
+            <div className="bg-card rounded-xl p-8 shadow-card hover:shadow-hover transition-all duration-300 transform hover:-translate-y-1 min-w-[280px]">
+              <div className="bg-gradient-accent rounded-full w-16 h-16 flex items-center justify-center mb-4 mx-auto group-hover:scale-110 transition-transform">
+                <BarChart3 className="w-8 h-8 text-card" />
+              </div>
+              <h3 className="text-2xl font-bold text-card-foreground mb-2 text-center">
+                Auction Summary
+              </h3>
+              <p className="text-muted-foreground text-center">
+                View live auction progress
+              </p>
+            </div>
+          </Link>
+
+          <Link to="/player-banners" className="group">
+            <div className="bg-card rounded-xl p-8 shadow-card hover:shadow-hover transition-all duration-300 transform hover:-translate-y-1 min-w-[280px]">
+              <div className="bg-gradient-accent rounded-full w-16 h-16 flex items-center justify-center mb-4 mx-auto group-hover:scale-110 transition-transform">
+                <Image className="w-8 h-8 text-card" />
+              </div>
+              <h3 className="text-2xl font-bold text-card-foreground mb-2 text-center">
+                Player Banners
+              </h3>
+              <p className="text-muted-foreground text-center">
+                View all player banners
               </p>
             </div>
           </Link>

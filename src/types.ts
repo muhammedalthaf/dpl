@@ -33,17 +33,31 @@ export interface PaymentConfig {
 export type AuctionStatus = "pending" | "live" | "sold" | "unsold";
 
 export interface AuctionPlayer extends Player {
-  basePrice: number;
-  auctionStatus: AuctionStatus;
+  // Snake case (from API)
+  base_price?: number;
+  auction_status?: AuctionStatus;
+  sold_price?: number | null;
+  sold_to_team_id?: string | null;
+  is_icon_player?: boolean;
+  icon_player_team_id?: string | null;
+  auction_order?: number | null;
+  player_id?: string;
+  // Camel case (legacy/mock data)
+  basePrice?: number;
+  auctionStatus?: AuctionStatus;
   soldPrice?: number | null;
   soldToTeamId?: string | null;
 }
 
 export interface AuctionBid {
-  id: string;
-  playerId: string;
-  teamId: string;
-  teamName: string;
+  id?: string;
+  _id?: string;
+  playerId?: string;
+  player_id?: string;
+  teamId?: string;
+  team_id?: string;
+  teamName?: string;
+  team_name?: string;
   amount: number;
   timestamp: string;
 }

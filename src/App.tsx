@@ -16,6 +16,9 @@ import AuctionControl from "./pages/AuctionControl";
 import AuctionDisplay from "./pages/AuctionDisplay";
 import Registrations from "./pages/Registrations";
 import ApprovedPayments from "./pages/ApprovedPayments";
+import AuctionOrder from "./pages/AuctionOrder";
+import IconPlayers from "./pages/IconPlayers";
+import PlayerBanners from "./pages/PlayerBanners";
 
 const App = () => (
   <AuthProvider>
@@ -27,6 +30,8 @@ const App = () => (
           {/* Public Routes */}
           <Route path="/" element={<PublicHome />} />
           <Route path="/register" element={<RegisterPlayer />} />
+          <Route path="/auction-summary" element={<AuctionSummary />} />
+          <Route path="/player-banners" element={<PlayerBanners />} />
           <Route path="/admin/login" element={<AdminLogin />} />
 
           {/* Protected Admin Routes */}
@@ -35,9 +40,10 @@ const App = () => (
           <Route path="/admin/players" element={<ProtectedRoute><Players /></ProtectedRoute>} />
           <Route path="/admin/approved-payments" element={<ProtectedRoute><ApprovedPayments /></ProtectedRoute>} />
           <Route path="/admin/teams" element={<ProtectedRoute><Teams /></ProtectedRoute>} />
-          <Route path="/admin/auction/summary" element={<ProtectedRoute><AuctionSummary /></ProtectedRoute>} />
           <Route path="/admin/auction/control" element={<ProtectedRoute><AuctionControl /></ProtectedRoute>} />
           <Route path="/admin/auction/display" element={<ProtectedRoute><AuctionDisplay /></ProtectedRoute>} />
+          <Route path="/admin/auction/order" element={<ProtectedRoute><AuctionOrder /></ProtectedRoute>} />
+          <Route path="/admin/auction/icon-players" element={<ProtectedRoute><IconPlayers /></ProtectedRoute>} />
 
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

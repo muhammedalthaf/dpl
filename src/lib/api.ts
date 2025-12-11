@@ -288,4 +288,72 @@ export const settingsAPI = {
   },
 };
 
+// ===================== ICON PLAYER API =====================
+export const iconPlayerAPI = {
+  async assignIconPlayer(playerId: string, teamId: string) {
+    const response = await apiClient.post('/icon-players/assign', {
+      player_id: playerId,
+      team_id: teamId,
+    });
+    return response.data.data;
+  },
+
+  async unassignIconPlayer(playerId: string) {
+    const response = await apiClient.post(`/icon-players/unassign/${playerId}`);
+    return response.data.data;
+  },
+
+  async getIconPlayersByTeam(teamId: string) {
+    const response = await apiClient.get(`/icon-players/team/${teamId}`);
+    return response.data.data;
+  },
+
+  async getAllIconPlayers() {
+    const response = await apiClient.get('/icon-players/');
+    return response.data.data;
+  },
+};
+
+// ===================== AUCTION ORDER API =====================
+export const auctionOrderAPI = {
+  async initializeAuctionForAll(basePrice: number = 100) {
+    const response = await apiClient.post('/auction-order/initialize-all', null, {
+      params: { base_price: basePrice },
+    });
+    return response.data.data;
+  },
+
+  async initializeOrder() {
+    const response = await apiClient.post('/auction-order/initialize-order');
+    return response.data.data;
+  },
+
+  async randomizeOrder(onlyPending: boolean = true) {
+    const response = await apiClient.post('/auction-order/randomize', null, {
+      params: { only_pending: onlyPending },
+    });
+    return response.data.data;
+  },
+
+  async updateOrder(playerId: string, newOrder: number) {
+    const response = await apiClient.put('/auction-order/update', {
+      player_id: playerId,
+      new_order: newOrder,
+    });
+    return response.data.data;
+  },
+
+  async getPlayersByOrder(skip: number = 0, limit: number = 100, includeSold: boolean = false) {
+    const response = await apiClient.get('/auction-order/players', {
+      params: { skip, limit, include_sold: includeSold },
+    });
+    return response.data.data;
+  },
+
+  async getAllPlayersWithOrder() {
+    const response = await apiClient.get('/auction-order/all');
+    return response.data.data;
+  },
+};
+
 export default apiClient;
