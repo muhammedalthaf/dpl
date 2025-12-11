@@ -202,36 +202,36 @@ const AuctionSummary = () => {
             {/* Live Players & Recent Activity Row */}
             <div className="grid md:grid-cols-2 gap-4">
               {/* Live Players */}
-              <Card className="shadow-card">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Gavel className="h-5 w-5 text-yellow-500" />
+              <Card className="shadow-card overflow-hidden">
+                <CardHeader className="pb-3 px-3 sm:px-6">
+                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                    <Gavel className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500 flex-shrink-0" />
                     Live Auction ({livePlayers.length})
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="px-3 sm:px-6">
                   {livePlayers.length === 0 ? (
-                    <p className="text-muted-foreground text-center py-8">No players currently in auction</p>
+                    <p className="text-muted-foreground text-center py-8 text-sm">No players currently in auction</p>
                   ) : (
                     <div className="space-y-3">
                       {livePlayers.map((player) => (
-                        <div key={player._id} className="flex items-center gap-3 p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-200 dark:border-yellow-900">
-                          <Avatar className="h-14 w-14 border-2 border-yellow-400">
+                        <div key={player._id} className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-200 dark:border-yellow-900">
+                          <Avatar className="h-10 w-10 sm:h-14 sm:w-14 border-2 border-yellow-400 flex-shrink-0">
                             <AvatarImage src={resolveFileUrl(player.image_url || "")} alt={player.name} />
                             <AvatarFallback>{player.name.slice(0, 2).toUpperCase()}</AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
-                            <p className="font-semibold truncate">{player.name}</p>
-                            <p className="text-sm text-muted-foreground">{player.role} · Base: ₹{player.base_price}</p>
+                            <p className="font-semibold truncate text-sm sm:text-base">{player.name}</p>
+                            <p className="text-xs sm:text-sm text-muted-foreground truncate">{player.role} · Base: ₹{player.base_price}</p>
                           </div>
-                          <div className="text-right">
+                          <div className="text-right flex-shrink-0">
                             {player.highest_bid ? (
                               <>
-                                <p className="text-xl font-bold text-green-600">₹{player.highest_bid.amount.toLocaleString()}</p>
-                                <p className="text-xs text-muted-foreground">{player.highest_bid.team_name}</p>
+                                <p className="text-base sm:text-xl font-bold text-green-600">₹{player.highest_bid.amount.toLocaleString()}</p>
+                                <p className="text-xs text-muted-foreground truncate max-w-[80px]">{player.highest_bid.team_name}</p>
                               </>
                             ) : (
-                              <p className="text-sm text-muted-foreground">No bids yet</p>
+                              <p className="text-xs sm:text-sm text-muted-foreground">No bids</p>
                             )}
                           </div>
                         </div>
@@ -242,36 +242,36 @@ const AuctionSummary = () => {
               </Card>
 
               {/* Recent Activity */}
-              <Card className="shadow-card">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Clock className="h-5 w-5 text-blue-500" />
+              <Card className="shadow-card overflow-hidden">
+                <CardHeader className="pb-3 px-3 sm:px-6">
+                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                    <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500 flex-shrink-0" />
                     Recent Bids
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="px-3 sm:px-6">
                   {recentActivity.length === 0 ? (
-                    <p className="text-muted-foreground text-center py-8">No recent activity</p>
+                    <p className="text-muted-foreground text-center py-8 text-sm">No recent activity</p>
                   ) : (
                     <ScrollArea className="h-[300px]">
                       <div className="space-y-2">
                         {recentActivity.map((activity) => (
-                          <div key={activity._id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50">
-                            <Avatar className="h-10 w-10">
+                          <div key={activity._id} className="flex items-center gap-2 sm:gap-3 p-2 rounded-lg hover:bg-muted/50">
+                            <Avatar className="h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0">
                               <AvatarImage src={resolveFileUrl(activity.player_image || "")} alt={activity.player_name} />
                               <AvatarFallback>{activity.player_name?.slice(0, 2).toUpperCase()}</AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <p className="font-medium truncate">{activity.player_name}</p>
+                              <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
+                                <p className="font-medium truncate text-sm">{activity.player_name}</p>
                                 {getStatusBadge(activity.player_status)}
                               </div>
-                              <p className="text-sm text-muted-foreground">
-                                {activity.team_name} bid <span className="font-semibold text-foreground">₹{activity.amount.toLocaleString()}</span>
+                              <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                                {activity.team_name} · <span className="font-semibold text-foreground">₹{activity.amount.toLocaleString()}</span>
                               </p>
                             </div>
-                            <p className="text-xs text-muted-foreground">
-                              {new Date(activity.timestamp).toLocaleTimeString()}
+                            <p className="text-[10px] sm:text-xs text-muted-foreground flex-shrink-0">
+                              {new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </p>
                           </div>
                         ))}
