@@ -83,7 +83,19 @@ export const playerAPI = {
 // ===================== TEAM API =====================
 export const teamAPI = {
   async createTeam(data: any) {
-    const response = await apiClient.post('/teams/', data);
+    // Backend expects form data, so convert JSON to FormData
+    const formData = new FormData();
+    formData.append('name', data.name);
+    formData.append('owner_name', data.owner_name);
+    formData.append('owner_contact', data.owner_contact);
+    if (data.owner_details) {
+      formData.append('owner_details', data.owner_details);
+    }
+    const response = await apiClient.post('/teams/', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data.data;
   },
 
@@ -110,6 +122,15 @@ export const teamAPI = {
 
   async updateTeam(id: string, data: any) {
     const response = await apiClient.put(`/teams/${id}`, data);
+    return response.data.data;
+  },
+
+  async updateTeamWithLogo(id: string, formData: FormData) {
+    const response = await apiClient.put(`/teams/${id}/with-logo`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data.data;
   },
 

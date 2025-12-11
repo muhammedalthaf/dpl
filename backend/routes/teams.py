@@ -84,6 +84,45 @@ async def update_team(team_id: str, team: TeamUpdate):
         return create_error_response(str(e), 400)
 
 
+@router.put("/{team_id}/with-logo", summary="Update team with logo")
+async def update_team_with_logo(
+    team_id: str,
+    name: str = Form(None),
+    owner_name: str = Form(None),
+    owner_contact: str = Form(None),
+    owner_details: str = Form(None),
+    icon_file: UploadFile = File(None),
+):
+    """Update team details with optional new logo file"""
+    try:
+        import time
+        icon_url = None
+
+        if icon_file:
+            file_extension = icon_file.filename.split(".")[-1]
+            file_name = f"{team_id}_{int(time.time())}.{file_extension}"
+            file_path = os.path.join(UPLOAD_DIR, file_name)
+
+            async with aiofiles.open(file_path, "wb") as f:
+                contents = await icon_file.read()
+                await f.write(contents)
+
+            icon_url = f"/uploads/teams/{file_name}"
+
+        update_data = TeamUpdate(
+            name=name if name else None,
+            owner_name=owner_name if owner_name else None,
+            owner_contact=owner_contact if owner_contact else None,
+            owner_details=owner_details if owner_details else None,
+            icon_url=icon_url if icon_url else None,
+        )
+
+        result = await TeamController.update_team(team_id, update_data)
+        return create_response(result, "Team updated successfully")
+    except Exception as e:
+        return create_error_response(str(e), 400)
+
+
 @router.delete("/{team_id}", summary="Delete team")
 async def delete_team(team_id: str):
     """Delete a team"""
