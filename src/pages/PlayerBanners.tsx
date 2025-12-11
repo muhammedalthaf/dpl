@@ -72,24 +72,24 @@ const PlayerBanners = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 p-4 print:p-0 print:bg-white">
+    <div className="min-h-screen bg-gray-900 py-4 px-2 sm:p-4 print:p-0 print:bg-white">
       {/* Screen Header - Hidden in Print */}
-      <div className="text-center mb-8 print:hidden">
-        <img src={clubLogo} alt="DPL" className="h-20 mx-auto mb-4" />
-        <h1 className="text-4xl font-bold text-white mb-2">
+      <div className="text-center mb-6 sm:mb-8 print:hidden">
+        <img src={clubLogo} alt="DPL" className="h-16 sm:h-20 mx-auto mb-3 sm:mb-4" />
+        <h1 className="text-2xl sm:text-4xl font-bold text-white mb-2">
           Deverkovil Premier League
         </h1>
-        <p className="text-gray-400">Player Banners - {players.length} Players</p>
+        <p className="text-gray-400 text-sm sm:text-base">Player Banners - {players.length} Players</p>
         <button
           onClick={() => window.print()}
-          className="mt-4 px-6 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-lg hover:opacity-90 transition"
+          className="mt-4 px-4 sm:px-6 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-lg hover:opacity-90 transition text-sm sm:text-base"
         >
           Print / Export PDF
         </button>
       </div>
 
       {/* Player Banners Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-1 print:gap-4 max-w-6xl mx-auto">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 print:grid-cols-1 print:gap-4 w-[95%] sm:w-[92%] md:w-full md:max-w-6xl mx-auto">
         {players.map((player, index) => (
           <div
             key={player._id}

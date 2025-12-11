@@ -34,14 +34,14 @@ const AdminLogin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-green-900 to-slate-900 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <img src={clubLogo} alt="CVCL Logo" className="h-20 w-20 object-contain" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-green-900 to-slate-900 flex items-center justify-center py-4 px-2 sm:p-4">
+      <Card className="w-[95%] sm:w-[92%] md:w-full max-w-md">
+        <CardHeader className="text-center p-4 sm:p-6">
+          <div className="flex justify-center mb-3 sm:mb-4">
+            <img src={clubLogo} alt="CVCL Logo" className="h-16 w-16 sm:h-20 sm:w-20 object-contain" />
           </div>
-          <CardTitle className="text-2xl">Admin Login</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-xl sm:text-2xl">Admin Login</CardTitle>
+          <CardDescription className="text-sm">
             Enter your credentials to access the admin panel
           </CardDescription>
         </CardHeader>

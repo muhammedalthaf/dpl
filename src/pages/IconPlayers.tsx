@@ -137,20 +137,23 @@ const IconPlayers = () => {
     }
   };
 
-  const iconPlayers = players.filter(p => p.is_icon_player);
-  const availablePlayers = players.filter(p => !p.is_icon_player && p.auction_status === 'pending');
+  // Sort by name (alphabetically) - same as normal Players page
+  const sortByName = (a: AuctionPlayer, b: AuctionPlayer) => a.name.localeCompare(b.name);
+
+  const iconPlayers = players.filter(p => p.is_icon_player).sort(sortByName);
+  const availablePlayers = players.filter(p => !p.is_icon_player && p.auction_status === 'pending').sort(sortByName);
 
   return (
-    <div className="min-h-screen bg-gradient-primary py-12 px-4">
-      <div className="container mx-auto max-w-6xl">
-        <Link to="/admin" className="inline-flex items-center text-primary-foreground hover:text-primary-foreground/80 mb-6">
+    <div className="page-container bg-gradient-primary">
+      <div className="content-container">
+        <Link to="/admin" className="inline-flex items-center text-primary-foreground hover:text-primary-foreground/80 mb-4 sm:mb-6">
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to Admin
         </Link>
 
-        <div className="text-center mb-8">
-          <img src={clubLogo} alt="Club Logo" className="mx-auto mb-4" style={{height:"15vh", objectFit: "cover"}}/>
-          <h1 className="text-3xl font-bold text-primary-foreground mb-2">Icon Players Management</h1>
-          <p className="text-primary-foreground/80">
+        <div className="text-center mb-6 sm:mb-8">
+          <img src={clubLogo} alt="Club Logo" className="mx-auto mb-3 sm:mb-4" style={{height:"12vh", objectFit: "cover"}}/>
+          <h1 className="text-2xl sm:text-3xl font-bold text-primary-foreground mb-2">Icon Players Management</h1>
+          <p className="text-primary-foreground/80 text-sm sm:text-base">
             Assign icon players to teams (₹{ICON_PLAYER_COST} each, max {MAX_ICON_PLAYERS} per team)
           </p>
         </div>
@@ -203,27 +206,27 @@ const IconPlayers = () => {
                 {iconPlayers.length === 0 ? (
                   <p className="text-muted-foreground text-center py-4">No icon players assigned yet</p>
                 ) : (
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                     {iconPlayers.map((player) => {
                       const team = teams.find(t => t._id === player.icon_player_team_id);
                       return (
-                        <div key={player._id} className="flex items-center justify-between p-3 rounded-lg border bg-amber-50 border-amber-300">
-                          <div className="flex items-center gap-3">
-                            <Star className="h-5 w-5 text-amber-500 fill-amber-500" />
-                            <div>
-                              <p className="font-medium">{player.name}</p>
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <Badge className={`${getRoleBadgeColor(player.role)} text-white text-xs`}>
+                        <div key={player._id} className="flex items-center justify-between p-2 sm:p-3 rounded-lg border bg-amber-50 border-amber-300">
+                          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                            <Star className="h-4 w-4 sm:h-5 sm:w-5 text-amber-500 fill-amber-500 flex-shrink-0" />
+                            <div className="min-w-0">
+                              <p className="font-medium text-sm sm:text-base truncate">{player.name}</p>
+                              <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground flex-wrap">
+                                <Badge className={`${getRoleBadgeColor(player.role)} text-white text-[10px] sm:text-xs`}>
                                   {getRoleLabel(player.role)}
                                 </Badge>
-                                {team && <span>→ {team.name}</span>}
+                                {team && <span className="truncate">→ {team.name}</span>}
                               </div>
                             </div>
                           </div>
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="text-red-500 hover:text-red-700 hover:bg-red-100"
+                            className="text-red-500 hover:text-red-700 hover:bg-red-100 flex-shrink-0 h-8 w-8 p-0"
                             onClick={() => handleUnassignIconPlayer(player._id)}
                             disabled={assigning === player._id}
                           >
@@ -250,11 +253,11 @@ const IconPlayers = () => {
                 ) : (
                   <div className="space-y-2">
                     {availablePlayers.map((player) => (
-                      <div key={player._id} className="flex items-center justify-between p-3 rounded-lg border bg-white">
+                      <div key={player._id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 rounded-lg border bg-white gap-3">
                         <div className="flex items-center gap-3">
                           <div>
                             <p className="font-medium">{player.name}</p>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <Badge className={`${getRoleBadgeColor(player.role)} text-white text-xs`}>
                                 {getRoleLabel(player.role)}
                               </Badge>
@@ -262,12 +265,12 @@ const IconPlayers = () => {
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
                           <Select
                             value={selectedTeamForPlayer[player._id] || ""}
                             onValueChange={(value) => setSelectedTeamForPlayer(prev => ({ ...prev, [player._id]: value }))}
                           >
-                            <SelectTrigger className="w-[180px]">
+                            <SelectTrigger className="flex-1 sm:flex-none sm:w-[150px]">
                               <SelectValue placeholder="Select team" />
                             </SelectTrigger>
                             <SelectContent>
@@ -286,9 +289,10 @@ const IconPlayers = () => {
                             size="sm"
                             onClick={() => handleAssignIconPlayer(player._id)}
                             disabled={!selectedTeamForPlayer[player._id] || assigning === player._id}
+                            className="whitespace-nowrap"
                           >
-                            {assigning === player._id ? <Loader className="h-4 w-4 animate-spin" /> : <Star className="h-4 w-4 mr-1" />}
-                            Assign
+                            {assigning === player._id ? <Loader className="h-4 w-4 animate-spin" /> : <Star className="h-4 w-4 sm:mr-1" />}
+                            <span className="hidden sm:inline">Assign</span>
                           </Button>
                         </div>
                       </div>

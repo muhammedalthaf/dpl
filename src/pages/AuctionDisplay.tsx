@@ -108,8 +108,8 @@ const AuctionDisplay = () => {
   const basePrice = currentPlayer?.base_price || 5000;
 
   return (
-    <div className="min-h-screen bg-gradient-primary py-10 px-4">
-      <div className="container mx-auto max-w-4xl space-y-6">
+    <div className="page-container bg-gradient-primary">
+      <div className="content-container-sm space-y-4 sm:space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between gap-2">
           <Link
@@ -117,7 +117,7 @@ const AuctionDisplay = () => {
             className="inline-flex items-center text-primary-foreground hover:text-primary-foreground/80 transition-colors"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Home
+            <span className="hidden sm:inline">Home</span>
           </Link>
           <div className="flex gap-2">
             <Button
@@ -126,7 +126,7 @@ const AuctionDisplay = () => {
               onClick={() => setUseSampleData(!useSampleData)}
               className={useSampleData ? "bg-green-600 hover:bg-green-700" : ""}
             >
-              {useSampleData ? "Demo ON" : "Demo OFF"}
+              {useSampleData ? "Demo" : "Demo"}
             </Button>
             <Button
               variant="outline"
@@ -135,19 +135,19 @@ const AuctionDisplay = () => {
               className="text-primary-foreground border-primary-foreground hover:bg-primary-foreground/10"
               disabled={loading || useSampleData}
             >
-              <RefreshCcw className="h-4 w-4 mr-2" />
-              Refresh
+              <RefreshCcw className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Refresh</span>
             </Button>
           </div>
         </div>
 
         {/* Title */}
         <div className="text-center text-primary-foreground space-y-2">
-          <p className="uppercase tracking-wide text-sm text-primary-foreground/70">
+          <p className="uppercase tracking-wide text-xs sm:text-sm text-primary-foreground/70">
             Live Auction
           </p>
-          <h1 className="text-4xl font-bold flex items-center justify-center gap-3">
-            <Hammer className="h-8 w-8" />
+          <h1 className="text-2xl sm:text-4xl font-bold flex items-center justify-center gap-2 sm:gap-3">
+            <Hammer className="h-6 w-6 sm:h-8 sm:w-8" />
             Current Bid
           </h1>
         </div>

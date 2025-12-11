@@ -189,24 +189,24 @@ const Registrations = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-primary py-8 px-4">
-      <div className="container mx-auto max-w-7xl">
-        <Link to="/admin" className="inline-flex items-center text-primary-foreground hover:text-primary-foreground/80 mb-6">
+    <div className="page-container bg-gradient-primary">
+      <div className="content-container">
+        <Link to="/admin" className="inline-flex items-center text-primary-foreground hover:text-primary-foreground/80 mb-4 sm:mb-6">
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to Admin
         </Link>
 
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-          <div className="flex items-center gap-4">
-            <img src={clubLogo} alt="Club Logo" className="h-16 object-contain" />
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 sm:mb-8 gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <img src={clubLogo} alt="Club Logo" className="h-12 sm:h-16 object-contain" />
             <div>
-              <h1 className="text-3xl font-bold text-primary-foreground">Player Registrations</h1>
-              <p className="text-primary-foreground/80">{registrations.length} registrations found</p>
+              <h1 className="text-xl sm:text-3xl font-bold text-primary-foreground">Player Registrations</h1>
+              <p className="text-primary-foreground/80 text-sm sm:text-base">{registrations.length} registrations found</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-40 bg-white">
-                <SelectValue placeholder="Filter by status" />
+              <SelectTrigger className="flex-1 sm:flex-none sm:w-36 bg-white">
+                <SelectValue placeholder="Filter" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
@@ -215,7 +215,7 @@ const Registrations = () => {
                 <SelectItem value="rejected">Rejected</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" onClick={fetchRegistrations} disabled={loading}>
+            <Button variant="outline" onClick={fetchRegistrations} disabled={loading} size="sm">
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             </Button>
           </div>

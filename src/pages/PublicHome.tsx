@@ -5,20 +5,20 @@ import clubLogo from "@/assets/club-logo.png";
 
 const PublicHome = () => {
   return (
-    <div className="min-h-screen bg-gradient-primary">
+    <div className="page-container bg-gradient-primary">
       {/* Hero Section */}
-      <div className="container mx-auto px-4 py-12">
-        <div className="text-center mb-12 animate-in fade-in duration-700">
+      <div className="content-container">
+        <div className="text-center mb-8 sm:mb-12 animate-in fade-in duration-700">
           <img
             src={clubLogo}
             alt="Riverstar Devarkovil Cricket Club"
-            className="mx-auto mb-6 drop-shadow-2xl"
-            style={{height:"20vh", objectFit: "cover"}}
+            className="mx-auto mb-4 sm:mb-6 drop-shadow-2xl"
+            style={{height:"15vh", objectFit: "cover"}}
           />
-          <h1 className="text-5xl font-bold text-primary-foreground mb-4">
+          <h1 className="text-3xl sm:text-5xl font-bold text-primary-foreground mb-2 sm:mb-4">
             Deverkovil Premier League
           </h1>
-          <p className="text-xl text-primary-foreground/90 max-w-2xl mx-auto">
+          <p className="text-base sm:text-xl text-primary-foreground/90 max-w-2xl mx-auto">
             Welcome to DPL Registration Portal
           </p>
         </div>

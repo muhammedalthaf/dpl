@@ -140,46 +140,52 @@ const AuctionOrder = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-primary py-12 px-4">
-      <div className="container mx-auto max-w-4xl">
-        <Link to="/admin" className="inline-flex items-center text-primary-foreground hover:text-primary-foreground/80 mb-6 transition-colors">
+    <div className="page-container bg-gradient-primary">
+      <div className="content-container-sm">
+        <Link to="/admin" className="inline-flex items-center text-primary-foreground hover:text-primary-foreground/80 mb-4 sm:mb-6 transition-colors">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Admin
         </Link>
 
-        <div className="text-center mb-8">
-          <img src={clubLogo} alt="Club Logo" className="mx-auto mb-4" style={{height:"15vh", objectFit: "cover"}}/>
-          <h1 className="text-3xl font-bold text-primary-foreground mb-2">Auction Order Management</h1>
-          <p className="text-primary-foreground/80 mb-4">
+        <div className="text-center mb-6 sm:mb-8">
+          <img src={clubLogo} alt="Club Logo" className="mx-auto mb-3 sm:mb-4" style={{height:"12vh", objectFit: "cover"}}/>
+          <h1 className="text-2xl sm:text-3xl font-bold text-primary-foreground mb-2">Auction Order Management</h1>
+          <p className="text-primary-foreground/80 mb-4 text-sm sm:text-base">
             {loading ? "Loading..." : `${players.length} players`}
           </p>
-          <div className="flex flex-wrap justify-center gap-2">
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:justify-center gap-2">
             <Button
               onClick={handleInitializeAuction}
               disabled={populating}
               variant="default"
+              size="sm"
+              className="text-xs sm:text-sm"
             >
-              {populating ? <Loader className="h-4 w-4 animate-spin mr-2" /> : <Users className="h-4 w-4 mr-2" />}
-              Initialize Auction
+              {populating ? <Loader className="h-3 w-3 sm:h-4 sm:w-4 animate-spin mr-1 sm:mr-2" /> : <Users className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />}
+              <span className="hidden sm:inline">Initialize</span> Auction
             </Button>
             <Button
               onClick={handleInitializeOrder}
               disabled={initializing}
               variant="secondary"
+              size="sm"
+              className="text-xs sm:text-sm"
             >
-              {initializing ? <Loader className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-              Initialize Order
+              {initializing ? <Loader className="h-3 w-3 sm:h-4 sm:w-4 animate-spin mr-1 sm:mr-2" /> : <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />}
+              <span className="hidden sm:inline">Initialize</span> Order
             </Button>
             <Button
               onClick={handleRandomizeOrder}
               disabled={randomizing}
               variant="secondary"
+              size="sm"
+              className="text-xs sm:text-sm"
             >
-              {randomizing ? <Loader className="h-4 w-4 animate-spin mr-2" /> : <Shuffle className="h-4 w-4 mr-2" />}
-              Randomize Order
+              {randomizing ? <Loader className="h-3 w-3 sm:h-4 sm:w-4 animate-spin mr-1 sm:mr-2" /> : <Shuffle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />}
+              Randomize
             </Button>
-            <Button onClick={fetchPlayers} variant="outline" disabled={loading}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            <Button onClick={fetchPlayers} variant="outline" disabled={loading} size="sm" className="text-xs sm:text-sm">
+              <RefreshCw className={`h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 ${loading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
           </div>
@@ -203,37 +209,39 @@ const AuctionOrder = () => {
                 Player Auction Order
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-2 sm:p-6">
               <div className="space-y-2">
                 {players.map((player) => (
                   <div
                     key={player._id}
-                    className={`flex items-center justify-between p-3 rounded-lg border ${
+                    className={`flex flex-col sm:flex-row sm:items-center sm:justify-between p-2 sm:p-3 rounded-lg border gap-2 ${
                       player.is_icon_player ? 'bg-amber-50 border-amber-300' : 'bg-white border-gray-200'
                     } ${player.auction_status === 'sold' ? 'opacity-60' : ''}`}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center font-bold text-lg">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gray-100 flex items-center justify-center font-bold text-sm sm:text-lg flex-shrink-0">
                         {player.auction_order ?? '-'}
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{player.name}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
+                          <span className="font-medium text-sm sm:text-base">{player.name}</span>
                           {player.is_icon_player && (
-                            <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
+                            <Star className="h-3 w-3 sm:h-4 sm:w-4 text-amber-500 fill-amber-500" />
                           )}
-                          <Badge className={`${getRoleBadgeColor(player.role)} text-white text-xs`}>
+                        </div>
+                        <div className="flex items-center gap-1 sm:gap-2 flex-wrap mt-1">
+                          <Badge className={`${getRoleBadgeColor(player.role)} text-white text-[10px] sm:text-xs`}>
                             {getRoleLabel(player.role)}
                           </Badge>
                           {getStatusBadge(player.auction_status)}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {player.place} • Base: ₹{player.base_price}
+                          <span className="text-xs sm:text-sm text-muted-foreground">
+                            {player.place} • ₹{player.base_price}
+                          </span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 ml-10 sm:ml-0">
                       {editingId === player._id ? (
                         <>
                           <Input
@@ -241,14 +249,15 @@ const AuctionOrder = () => {
                             min="1"
                             value={newOrderValue}
                             onChange={(e) => setNewOrderValue(e.target.value)}
-                            className="w-20 h-8"
-                            placeholder="Order"
+                            className="w-16 sm:w-20 h-8 text-sm"
+                            placeholder="#"
                             autoFocus
                           />
                           <Button
                             size="sm"
                             onClick={() => handleUpdateOrder(player._id)}
                             disabled={updating}
+                            className="h-8 px-2 sm:px-3"
                           >
                             {updating ? <Loader className="h-3 w-3 animate-spin" /> : 'Save'}
                           </Button>
@@ -259,8 +268,10 @@ const AuctionOrder = () => {
                               setEditingId(null);
                               setNewOrderValue("");
                             }}
+                            className="h-8 px-2 sm:px-3"
                           >
-                            Cancel
+                            <span className="hidden sm:inline">Cancel</span>
+                            <span className="sm:hidden">X</span>
                           </Button>
                         </>
                       ) : (
@@ -272,8 +283,10 @@ const AuctionOrder = () => {
                             setNewOrderValue(player.auction_order?.toString() || "");
                           }}
                           disabled={player.auction_status === 'sold'}
+                          className="h-8 text-xs sm:text-sm"
                         >
-                          Change Order
+                          <span className="hidden sm:inline">Change Order</span>
+                          <span className="sm:hidden">Edit</span>
                         </Button>
                       )}
                     </div>

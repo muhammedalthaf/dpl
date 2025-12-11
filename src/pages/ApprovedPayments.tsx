@@ -73,22 +73,22 @@ const ApprovedPayments = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-primary p-4 md:p-8">
-      <div className="container mx-auto max-w-6xl">
+    <div className="page-container bg-gradient-primary">
+      <div className="content-container">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-6 sm:mb-8">
           <Link to="/admin">
             <Button variant="outline" size="sm" className="bg-white/10 hover:bg-white/20 text-white border-white/30">
-              <ArrowLeft className="h-4 w-4 mr-2" /> Back
+              <ArrowLeft className="h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">Back</span>
             </Button>
           </Link>
-          <img src={clubLogo} alt="Club Logo" className="h-12" />
+          <img src={clubLogo} alt="Club Logo" className="h-10 sm:h-12" />
         </div>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl">Approved Payments</CardTitle>
-            <p className="text-muted-foreground">List of approved players with their transaction details</p>
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-xl sm:text-2xl">Approved Payments</CardTitle>
+            <p className="text-muted-foreground text-sm sm:text-base">List of approved players with their transaction details</p>
           </CardHeader>
           <CardContent>
             {/* Search */}

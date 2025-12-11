@@ -66,33 +66,33 @@ const AdminHome = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-primary">
+    <div className="page-container bg-gradient-primary">
       {/* Logout Button */}
-      <div className="absolute top-4 right-4">
+      <div className="absolute top-2 right-2 sm:top-4 sm:right-4">
         <Button
           variant="outline"
           size="sm"
           onClick={handleLogout}
           className="bg-white/10 hover:bg-white/20 text-white border-white/30"
         >
-          <LogOut className="w-4 h-4 mr-2" />
-          Logout
+          <LogOut className="w-4 h-4 sm:mr-2" />
+          <span className="hidden sm:inline">Logout</span>
         </Button>
       </div>
 
       {/* Hero Section */}
-      <div className="container mx-auto px-4 py-12">
-        <div className="text-center mb-12 animate-in fade-in duration-700">
+      <div className="content-container">
+        <div className="text-center mb-8 sm:mb-12 animate-in fade-in duration-700">
           <img
             src={clubLogo}
             alt="Riverstar Devarkovil Cricket Club"
-            className="mx-auto mb-6 drop-shadow-2xl"
-            style={{height:"20vh", objectFit: "cover"}}
+            className="mx-auto mb-4 sm:mb-6 drop-shadow-2xl"
+            style={{height:"15vh", objectFit: "cover"}}
           />
-          <h1 className="text-5xl font-bold text-primary-foreground mb-4">
+          <h1 className="text-3xl sm:text-5xl font-bold text-primary-foreground mb-2 sm:mb-4">
             DPL Admin Panel
           </h1>
-          <p className="text-xl text-primary-foreground/90 max-w-2xl mx-auto">
+          <p className="text-base sm:text-xl text-primary-foreground/90 max-w-2xl mx-auto">
             Manage registrations, players, teams, and auctions
           </p>
         </div>

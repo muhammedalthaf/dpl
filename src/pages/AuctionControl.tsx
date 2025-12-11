@@ -354,9 +354,9 @@ const AuctionControl = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-primary py-10 px-4">
-      <div className="container mx-auto space-y-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="page-container bg-gradient-primary">
+      <div className="content-container space-y-4 sm:space-y-6">
+        <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between">
           <Link
             to="/admin"
             className="inline-flex items-center text-primary-foreground hover:text-primary-foreground/80 transition-colors"
@@ -364,9 +364,10 @@ const AuctionControl = () => {
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Admin
           </Link>
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
+          <div className="flex gap-2 flex-wrap">
             <Button
               variant="outline"
+              size="sm"
               onClick={async () => {
                 try {
                   setLoading(true);
@@ -383,21 +384,23 @@ const AuctionControl = () => {
                   setLoading(false);
                 }
               }}
-              className="w-full sm:w-auto"
               disabled={loading}
             >
-              <RefreshCcw className="h-4 w-4 mr-2" />
-              Reload
+              <RefreshCcw className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Reload</span>
             </Button>
-            <Button asChild className="w-full sm:w-auto">
-              <a href="/auction-summary" target="_blank" rel="noopener noreferrer">View Summary</a>
+            <Button asChild size="sm">
+              <a href="/auction-summary" target="_blank" rel="noopener noreferrer">
+                <span className="hidden sm:inline">View Summary</span>
+                <span className="sm:hidden">Summary</span>
+              </a>
             </Button>
           </div>
         </div>
 
         <div className="text-center text-primary-foreground space-y-2">
-          <p className="uppercase tracking-wide text-sm text-primary-foreground/70">Live Room</p>
-          <h1 className="text-4xl font-bold flex items-center justify-center gap-3">
+          <p className="uppercase tracking-wide text-xs sm:text-sm text-primary-foreground/70">Live Room</p>
+          <h1 className="text-2xl sm:text-4xl font-bold flex items-center justify-center gap-2 sm:gap-3">
             <Hammer className="h-8 w-8" />
             Auction Control
           </h1>

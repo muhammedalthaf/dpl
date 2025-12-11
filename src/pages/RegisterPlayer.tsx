@@ -214,7 +214,7 @@ const RegisterPlayer = () => {
   // Show loading state while checking registration status
   if (isCheckingStatus) {
     return (
-      <div className="min-h-screen bg-gradient-primary py-12 px-4 flex items-center justify-center">
+      <div className="page-container bg-gradient-primary flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
           <p className="text-primary-foreground">Loading...</p>
@@ -226,23 +226,23 @@ const RegisterPlayer = () => {
   // Show registration closed message
   if (registrationOpen === false) {
     return (
-      <div className="min-h-screen bg-gradient-primary py-12 px-4">
-        <div className="container max-w-2xl mx-auto">
-          <Link to="/" className="inline-flex items-center text-primary-foreground hover:text-primary-foreground/80 mb-6 transition-colors">
+      <div className="page-container bg-gradient-primary">
+        <div className="content-container-sm">
+          <Link to="/" className="inline-flex items-center text-primary-foreground hover:text-primary-foreground/80 mb-4 sm:mb-6 transition-colors">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Home
           </Link>
 
-          <div className="text-center mb-8">
-            <img src={clubLogo} alt="Club Logo" className="mx-auto mb-4" style={{height:"20vh", objectFit: "cover"}}/>
+          <div className="text-center mb-6 sm:mb-8">
+            <img src={clubLogo} alt="Club Logo" className="mx-auto mb-3 sm:mb-4" style={{height:"15vh", objectFit: "cover"}}/>
           </div>
 
           <Card className="shadow-card">
             <CardContent className="pt-8 pb-8">
               <div className="text-center">
                 <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-                <h2 className="text-2xl font-bold text-card-foreground mb-2">Registration Closed</h2>
-                <p className="text-muted-foreground mb-6">
+                <h2 className="text-xl sm:text-2xl font-bold text-card-foreground mb-2">Registration Closed</h2>
+                <p className="text-muted-foreground mb-6 text-sm sm:text-base">
                   Player registration is currently closed. Please check back later or contact the organizers for more information.
                 </p>
                 <Link to="/">
@@ -259,17 +259,17 @@ const RegisterPlayer = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-primary py-12 px-4">
-      <div className="container max-w-2xl mx-auto">
-        <Link to="/" className="inline-flex items-center text-primary-foreground hover:text-primary-foreground/80 mb-6 transition-colors">
+    <div className="page-container bg-gradient-primary">
+      <div className="content-container-sm">
+        <Link to="/" className="inline-flex items-center text-primary-foreground hover:text-primary-foreground/80 mb-4 sm:mb-6 transition-colors">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Home
         </Link>
 
-        <div className="text-center mb-8">
-          <img src={clubLogo} alt="Club Logo" className="mx-auto mb-4 "  style={{height:"20vh", objectFit: "cover"}}/>
-          <h1 className="text-4xl font-bold text-primary-foreground mb-2">Player Registration</h1>
-          <p className="text-primary-foreground/80">Register for the DPL Season 1</p>
+        <div className="text-center mb-6 sm:mb-8">
+          <img src={clubLogo} alt="Club Logo" className="mx-auto mb-3 sm:mb-4" style={{height:"15vh", objectFit: "cover"}}/>
+          <h1 className="text-2xl sm:text-4xl font-bold text-primary-foreground mb-2">Player Registration</h1>
+          <p className="text-primary-foreground/80 text-sm sm:text-base">Register for the DPL Season 1</p>
         </div>
 
         <Card className="shadow-card">

@@ -210,23 +210,23 @@ const Players = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-primary py-12 px-4">
-      <div className="container mx-auto">
-        <Link to="/admin" className="inline-flex items-center text-primary-foreground hover:text-primary-foreground/80 mb-6 transition-colors">
+    <div className="page-container bg-gradient-primary">
+      <div className="content-container">
+        <Link to="/admin" className="inline-flex items-center text-primary-foreground hover:text-primary-foreground/80 mb-4 sm:mb-6 transition-colors">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Admin
         </Link>
 
-        <div className="text-center mb-8">
-          <img src={clubLogo}  alt="Club Logo" className="mx-auto mb-4" style={{height:"20vh", objectFit: "cover"}}/>
-          <h1 className="text-4xl font-bold text-primary-foreground mb-2">Registered Players</h1>
-          <p className="text-primary-foreground/80">
+        <div className="text-center mb-6 sm:mb-8">
+          <img src={clubLogo} alt="Club Logo" className="mx-auto mb-3 sm:mb-4" style={{height:"15vh", objectFit: "cover"}}/>
+          <h1 className="text-2xl sm:text-4xl font-bold text-primary-foreground mb-2">Registered Players</h1>
+          <p className="text-primary-foreground/80 text-sm sm:text-base">
             {loading ? "Loading..." : `${filteredPlayers.length} of ${players.length} ${players.length === 1 ? 'player' : 'players'}`}
           </p>
         </div>
 
         {/* Search Box */}
-        <div className="max-w-md mx-auto mb-8">
+        <div className="max-w-md mx-auto mb-6 sm:mb-8">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input

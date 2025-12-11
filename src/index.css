@@ -114,3 +114,18 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Mobile responsive utilities */
+@layer utilities {
+  .page-container {
+    @apply min-h-screen py-4 px-2 sm:py-8 sm:px-4 md:py-12 md:px-4;
+  }
+
+  .content-container {
+    @apply mx-auto w-[95%] sm:w-[92%] md:w-full md:max-w-6xl;
+  }
+
+  .content-container-sm {
+    @apply mx-auto w-[95%] sm:w-[92%] md:w-full md:max-w-4xl;
+  }
+}

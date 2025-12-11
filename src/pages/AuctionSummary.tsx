@@ -137,12 +137,12 @@ const AuctionSummary = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-primary py-6 px-4">
-      <div className="container mx-auto space-y-6">
+    <div className="page-container bg-gradient-primary">
+      <div className="content-container space-y-4 sm:space-y-6">
         {/* Header */}
         <div className="text-center text-primary-foreground space-y-2">
-          <h1 className="text-3xl font-bold flex items-center justify-center gap-3">
-            <BarChart3 className="h-7 w-7" />
+          <h1 className="text-2xl sm:text-3xl font-bold flex items-center justify-center gap-2 sm:gap-3">
+            <BarChart3 className="h-6 w-6 sm:h-7 sm:w-7" />
             Auction Summary
           </h1>
           {lastUpdated && (
