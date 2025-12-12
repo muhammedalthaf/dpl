@@ -154,12 +154,12 @@ const PlayerBannersPDF = () => {
               </div>
 
               {/* Center: Player Image */}
-              <div className="flex-1 flex items-center justify-center py-4">
+              <div className="flex-1 flex items-center justify-center py-2">
                 <div className="relative">
                   {/* Glow effect */}
                   <div className="absolute inset-0 rounded-xl bg-white/30 blur-2xl scale-110" />
-                  {/* Image container - rectangular */}
-                  <div className="relative w-40 h-52 rounded-xl border-4 border-white/50 shadow-2xl overflow-hidden bg-white/20">
+                  {/* Image container - rectangular (80% bigger) */}
+                  <div className="relative w-72 h-[380px] rounded-xl border-4 border-white/50 shadow-2xl overflow-hidden bg-white/20">
                     {player.image_url ? (
                       <img
                         src={resolveFileUrl(player.image_url)}
