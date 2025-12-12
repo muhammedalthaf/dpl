@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { playerAPI } from "@/lib/api";
-import { Loader2 } from "lucide-react";
+import { Loader2, FileDown } from "lucide-react";
 import clubLogo from "@/assets/club-logo.png";
 
 // Backend server URL for resolving uploaded file paths
@@ -80,12 +81,21 @@ const PlayerBanners = () => {
           Deverkovil Premier League
         </h1>
         <p className="text-gray-400 text-sm sm:text-base">Player Banners - {players.length} Players</p>
-        <button
-          onClick={() => window.print()}
-          className="mt-4 px-4 sm:px-6 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-lg hover:opacity-90 transition text-sm sm:text-base"
-        >
-          Print / Export PDF
-        </button>
+        <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <button
+            onClick={() => window.print()}
+            className="px-4 sm:px-6 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-lg hover:opacity-90 transition text-sm sm:text-base"
+          >
+            Print / Export PDF
+          </button>
+          <Link
+            to="/player-banners-pdf"
+            className="px-4 sm:px-6 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold rounded-lg hover:opacity-90 transition text-sm sm:text-base flex items-center gap-2"
+          >
+            <FileDown className="h-4 w-4" />
+            PDF Export (1 per page)
+          </Link>
+        </div>
       </div>
 
       {/* Player Banners Grid */}

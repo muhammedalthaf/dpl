@@ -19,6 +19,7 @@ import ApprovedPayments from "./pages/ApprovedPayments";
 import AuctionOrder from "./pages/AuctionOrder";
 import IconPlayers from "./pages/IconPlayers";
 import PlayerBanners from "./pages/PlayerBanners";
+import PlayerBannersPDF from "./pages/PlayerBannersPDF";
 
 const App = () => (
   <AuthProvider>
@@ -32,6 +33,7 @@ const App = () => (
           <Route path="/register" element={<RegisterPlayer />} />
           <Route path="/auction-summary" element={<AuctionSummary />} />
           <Route path="/player-banners" element={<PlayerBanners />} />
+          <Route path="/player-banners-pdf" element={<PlayerBannersPDF />} />
           <Route path="/admin/login" element={<AdminLogin />} />
 
           {/* Protected Admin Routes */}
