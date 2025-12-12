@@ -64,6 +64,16 @@ async def delete_bid(bid_id: str):
         return create_error_response(str(e), 400)
 
 
+@router.delete("/player/{player_id}/all", summary="Delete all bids for a player")
+async def delete_bids_for_player(player_id: str):
+    """Delete all bids for a specific player"""
+    try:
+        result = await BidController.delete_bids_for_player(player_id)
+        return create_response(result, "Bids deleted successfully")
+    except Exception as e:
+        return create_error_response(str(e), 400)
+
+
 @router.get("/player/{player_id}/highest", summary="Get highest bid")
 async def get_highest_bid(player_id: str):
     """Get the highest bid for a player"""

@@ -30,6 +30,10 @@ import { Loader2 } from "lucide-react";
 // Backend server URL for resolving uploaded file paths
 const BACKEND_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:8000';
 
+// Team constraints
+const MIN_PLAYERS_PER_TEAM = 12;
+const BASE_PRICE_FOR_CALCULATION = 100;
+
 const fallbackId = () => (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `id-${Date.now()}`);
 
 // Resolve file URL - handles both base64 data URLs and server-relative paths
@@ -108,6 +112,13 @@ const AuctionControl = () => {
       .sort((a, b) => (a.auction_order ?? 9999) - (b.auction_order ?? 9999));
   }, [auctionPlayers]);
 
+  // Get unsold players (for re-auction dropdown)
+  const unsoldPlayers = useMemo(() => {
+    return auctionPlayers
+      .filter((player) => player.auction_status === "unsold" && !player.is_icon_player)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [auctionPlayers]);
+
   const bidsForCurrent = useMemo(
     () => bids.filter((bid) => (bid.player_id || bid.playerId) === currentPlayerId),
     [bids, currentPlayerId]
@@ -149,6 +160,42 @@ const AuctionControl = () => {
   // Base price for validation
   const basePrice = currentPlayer?.base_price ?? auctionConfig.basePrice;
 
+  // Calculate next bid amount: +50 until 500, then +100
+  const getNextBidAmount = () => {
+    if (currentBid < 500) {
+      return currentBid + 50;
+    }
+    return currentBid + 100;
+  };
+  const nextBidAmount = getNextBidAmount();
+
+  // Calculate player count per team (including icon players)
+  const teamPlayerCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    auctionPlayers.forEach((player) => {
+      // Count sold players
+      if (player.auction_status === "sold" && player.sold_to_team_id) {
+        counts[player.sold_to_team_id] = (counts[player.sold_to_team_id] || 0) + 1;
+      }
+      // Count icon players
+      if (player.is_icon_player && player.icon_player_team_id) {
+        counts[player.icon_player_team_id] = (counts[player.icon_player_team_id] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [auctionPlayers]);
+
+  // Calculate max bid allowed for a team (must reserve balance for remaining players)
+  const getMaxBidForTeam = (teamId: string, purseBalance: number): number => {
+    const currentPlayerCount = teamPlayerCounts[teamId] || 0;
+    // Players still needed after this auction (excluding current player being bid on)
+    const playersStillNeeded = Math.max(0, MIN_PLAYERS_PER_TEAM - currentPlayerCount - 1);
+    // Reserve balance for remaining players at base price
+    const reservedBalance = playersStillNeeded * BASE_PRICE_FOR_CALCULATION;
+    // Max bid is purse balance minus reserved amount
+    return Math.max(0, purseBalance - reservedBalance);
+  };
+
   const handleDrawRandomPlayer = () => {
     if (remainingPlayers.length === 0) {
       toast.info("All players have been auctioned.");
@@ -175,6 +222,18 @@ const AuctionControl = () => {
     const amount = bidAmount ?? Number(bidInputs[teamId]);
     if (!amount || amount <= 0) {
       toast.error("Enter a valid bid amount.");
+      return;
+    }
+
+    // Check if team can afford this bid (considering min 12 players requirement)
+    const team = teams.find(t => t._id === teamId);
+    const purseBalance = team?.purse_balance ?? 8000;
+    const maxBid = getMaxBidForTeam(teamId, purseBalance);
+
+    if (amount > maxBid) {
+      const playerCount = teamPlayerCounts[teamId] || 0;
+      const playersNeeded = MIN_PLAYERS_PER_TEAM - playerCount - 1;
+      toast.error(`Max bid is ₹${maxBid.toLocaleString()}. Need to reserve ₹${(playersNeeded * BASE_PRICE_FOR_CALCULATION).toLocaleString()} for ${playersNeeded} more players.`);
       return;
     }
 
@@ -322,7 +381,7 @@ const AuctionControl = () => {
 
       toast.success(`${currentPlayer.name} sold!`);
     } catch (error: any) {
-      toast.error(error?.response?.data?.detail || "Failed to finalize sale");
+      toast.error(error?.response?.data?.message || error?.response?.data?.detail || "Failed to finalize sale");
     } finally {
       setBidLoading(false);
     }
@@ -332,13 +391,34 @@ const AuctionControl = () => {
     if (!currentPlayer) return;
     try {
       setBidLoading(true);
-      await auctionAPI.updateAuctionStatus(currentPlayer._id, "pending");
+
+      // Capture sold info before API call
+      const wasSold = currentPlayer.auction_status === "sold";
+      const soldTeamId = currentPlayer.sold_to_team_id;
+      const soldPrice = currentPlayer.sold_price || 0;
+
+      // Call reopen player API - handles clearing bids, refunding team, resetting fields
+      await auctionAPI.reopenPlayer(currentPlayer._id);
+
+      // Update player local state - reset sold fields
       setAuctionPlayers(auctionPlayers.map(p =>
         p._id === currentPlayer._id
-          ? { ...p, auction_status: "pending" }
+          ? { ...p, auction_status: "pending", sold_price: undefined, sold_to_team_id: undefined }
           : p
       ));
-      toast.info(`${currentPlayer.name} moved back to pool.`);
+
+      // If player was sold, refund the team's purse balance in local state
+      if (wasSold && soldTeamId && soldPrice > 0) {
+        setTeams(teams.map(t =>
+          t._id === soldTeamId
+            ? { ...t, purse_balance: (t.purse_balance ?? 8000) + soldPrice }
+            : t
+        ));
+      }
+
+      // Clear bids from local state for this player
+      setBids(bids.filter(b => (b.player_id || b.playerId) !== currentPlayer._id));
+      toast.info(`${currentPlayer.name} moved back to pool. All bids cleared.${wasSold ? ` ₹${soldPrice} refunded to team.` : ''}`);
     } catch (error: any) {
       toast.error("Failed to reopen player");
     } finally {
@@ -351,6 +431,26 @@ const AuctionControl = () => {
     setManualSale({ teamId: "", amount: "" });
     setSelectedBidTeamId(null);
     setBidInputs({});
+  };
+
+  const handleSelectUnsoldPlayer = async (playerId: string) => {
+    if (!playerId) return;
+    // Set the player as current and update status to pending
+    try {
+      await auctionAPI.updateAuctionStatus(playerId, "pending");
+      setAuctionPlayers(auctionPlayers.map(p =>
+        p._id === playerId
+          ? { ...p, auction_status: "pending" }
+          : p
+      ));
+      setCurrentPlayerId(playerId);
+      setManualSale({ teamId: "", amount: "" });
+      setBidInputs({});
+      const player = auctionPlayers.find(p => p._id === playerId);
+      toast.success(`${player?.name || 'Player'} moved back to auction`);
+    } catch (error: any) {
+      toast.error("Failed to reopen player");
+    }
   };
 
   return (
@@ -433,6 +533,20 @@ const AuctionControl = () => {
                   <Undo2 className="h-4 w-4 mr-1" />
                   Clear
                 </Button>
+                {unsoldPlayers.length > 0 && (
+                  <select
+                    className="border rounded-md px-3 py-2 bg-background text-sm"
+                    value=""
+                    onChange={(e) => handleSelectUnsoldPlayer(e.target.value)}
+                  >
+                    <option value="">Re-auction Unsold ({unsoldPlayers.length})</option>
+                    {unsoldPlayers.map((player) => (
+                      <option key={player._id} value={player._id}>
+                        {player.name} - {getRoleLabel(player.role)}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               {currentPlayer ? (
@@ -552,8 +666,17 @@ const AuctionControl = () => {
                     </div>
 
                     <div className="flex gap-3 flex-wrap">
-                      <Button onClick={() => finalizeSale("sold")}>Sold</Button>
-                      <Button variant="secondary" onClick={() => finalizeSale("unsold")}>
+                      <Button
+                        onClick={() => finalizeSale("sold")}
+                        disabled={currentPlayer?.auction_status === "sold"}
+                      >
+                        Sold
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        onClick={() => finalizeSale("unsold")}
+                        disabled={currentPlayer?.auction_status === "sold"}
+                      >
                         Unsold
                       </Button>
                       <Button variant="ghost" onClick={reopenPlayer}>
@@ -578,17 +701,22 @@ const AuctionControl = () => {
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                   {teams.map((team) => {
                     const purseBalance = team.purse_balance ?? 8000;
-                    // For first bid, check against base price; for counter bids, check against next minimum bid
-                    const minBidRequired = bidsForCurrent.length === 0 ? basePrice : currentBid + 1;
-                    const hasEnoughBalance = purseBalance >= minBidRequired;
+                    const playerCount = teamPlayerCounts[team._id] || 0;
+                    const maxBid = getMaxBidForTeam(team._id, purseBalance);
+
+                    // For first bid, check against base price; for counter bids, check against next bid amount
+                    const bidAmountNeeded = bidsForCurrent.length === 0 ? basePrice : nextBidAmount;
+                    const canAffordBid = maxBid >= bidAmountNeeded;
+                    const isPlayerSold = currentPlayer?.auction_status === "sold";
+                    const isDisabled = !canAffordBid || isPlayerSold;
 
                     return (
                       <button
                         key={team._id}
-                        onClick={() => hasEnoughBalance && setSelectedBidTeamId(team._id)}
-                        disabled={!hasEnoughBalance}
+                        onClick={() => !isDisabled && setSelectedBidTeamId(team._id)}
+                        disabled={isDisabled}
                         className={`flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all ${
-                          !hasEnoughBalance
+                          isDisabled
                             ? "border-destructive/50 bg-destructive/10 opacity-60 cursor-not-allowed"
                             : selectedBidTeamId === team._id
                               ? "border-primary bg-primary/10"
@@ -601,8 +729,14 @@ const AuctionControl = () => {
                         </Avatar>
                         <div className="text-center">
                           <p className="text-sm font-semibold leading-tight">{team.name}</p>
-                          <p className={`text-xs font-medium ${hasEnoughBalance ? "text-green-600" : "text-destructive"}`}>
+                          <p className={`text-xs font-medium ${canAffordBid ? "text-green-600" : "text-destructive"}`}>
                             ₹{purseBalance.toLocaleString()}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {playerCount}/{MIN_PLAYERS_PER_TEAM} players
+                          </p>
+                          <p className={`text-xs ${canAffordBid ? "text-blue-600" : "text-destructive"}`}>
+                            Max: ₹{maxBid.toLocaleString()}
                           </p>
                         </div>
                       </button>
@@ -614,7 +748,12 @@ const AuctionControl = () => {
               <Separator />
 
               {/* First bid: Just show Place Bid button at base price */}
-              {bidsForCurrent.length === 0 ? (
+              {currentPlayer?.auction_status === "sold" ? (
+                <div className="text-center p-4 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                  <p className="text-lg font-semibold text-green-700 dark:text-green-400">Player Already Sold</p>
+                  <p className="text-sm text-muted-foreground mt-1">Use "Re-open Player" to restart bidding</p>
+                </div>
+              ) : bidsForCurrent.length === 0 ? (
                 <div className="space-y-3">
                   <div className="text-center p-4 bg-muted/50 rounded-lg">
                     <p className="text-sm text-muted-foreground mb-1">First bid will be placed at</p>
@@ -636,57 +775,26 @@ const AuctionControl = () => {
                   </Button>
                 </div>
               ) : (
-                /* Counter bids: Show amount input and quick bid buttons */
+                /* Counter bids: Automatic increment (+50 until 500, then +100) */
                 <div className="space-y-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="bid-amount" className="text-base font-semibold">
-                      Counter Bid Amount
-                    </Label>
-                    <div className="space-y-2">
-                      <Input
-                        id="bid-amount"
-                        type="number"
-                        placeholder={`Enter amount > ₹${currentBid.toLocaleString()}`}
-                        className="text-lg"
-                        value={selectedBidTeamId ? bidInputs[selectedBidTeamId] ?? "" : ""}
-                        onChange={(event) => {
-                          if (selectedBidTeamId) {
-                            handleBidInputChange(selectedBidTeamId, event.target.value);
-                          }
-                        }}
-                        disabled={!selectedBidTeamId}
-                      />
-                      <div className="flex flex-wrap gap-2">
-                        {auctionConfig.quickBidSteps.map((step) => (
-                          <Button
-                            key={`quick-${step}`}
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              if (selectedBidTeamId) {
-                                handleQuickBid(selectedBidTeamId, step);
-                              }
-                            }}
-                            disabled={!selectedBidTeamId}
-                          >
-                            +₹{step}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
+                  <div className="text-center p-4 bg-muted/50 rounded-lg">
+                    <p className="text-sm text-muted-foreground mb-1">Current Bid</p>
+                    <p className="text-2xl font-bold text-green-600">₹{currentBid.toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Next bid: +₹{currentBid < 500 ? '50' : '100'}
+                    </p>
                   </div>
-
                   <Button
                     onClick={() => {
                       if (selectedBidTeamId) {
-                        handlePlaceBid(selectedBidTeamId);
+                        handlePlaceBid(selectedBidTeamId, nextBidAmount);
                       }
                     }}
-                    disabled={!selectedBidTeamId || !bidInputs[selectedBidTeamId] || bidLoading}
-                    className="w-full"
+                    disabled={!selectedBidTeamId || bidLoading}
+                    className="w-full text-lg py-6"
+                    size="lg"
                   >
-                    {bidLoading ? "Placing..." : "Place Counter Bid"}
+                    {bidLoading ? "Placing..." : `Place Bid @ ₹${nextBidAmount.toLocaleString()}`}
                   </Button>
                 </div>
               )}

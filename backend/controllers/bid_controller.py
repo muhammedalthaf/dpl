@@ -210,3 +210,23 @@ class BidController:
             )
 
         return object_id_to_string(highest_bid)
+
+    @staticmethod
+    async def delete_bids_for_player(player_id: str) -> dict:
+        """Delete all bids for a specific player"""
+        if not validate_object_id(player_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid player ID",
+            )
+
+        db = get_database()
+        bids_collection = db["bids"]
+
+        result = await bids_collection.delete_many({"player_id": player_id})
+
+        return {
+            "message": f"Deleted {result.deleted_count} bids for player",
+            "player_id": player_id,
+            "deleted_count": result.deleted_count,
+        }

@@ -87,6 +87,16 @@ async def mark_player_unsold(player_id: str):
         return create_error_response(str(e), 400)
 
 
+@router.post("/players/{player_id}/reopen", summary="Reopen player for auction")
+async def reopen_player(player_id: str):
+    """Reopen a player for auction - clears bids, refunds team if sold, resets sold fields"""
+    try:
+        result = await AuctionController.reopen_player(player_id)
+        return create_response(result, "Player reopened for auction")
+    except Exception as e:
+        return create_error_response(str(e), 400)
+
+
 @router.get("/summary", summary="Get auction summary")
 async def get_auction_summary():
     """Get auction summary and statistics"""

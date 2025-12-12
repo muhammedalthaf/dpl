@@ -113,6 +113,70 @@ class AuctionController:
         return object_id_to_string(updated_player)
 
     @staticmethod
+    async def reopen_player(player_id: str) -> dict:
+        """Reopen a player for auction - clears bids, refunds team if sold, resets sold fields"""
+        if not validate_object_id(player_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid player ID",
+            )
+
+        db = get_database()
+        players = db["players"]
+        teams = db["teams"]
+        bids_collection = db["bids"]
+
+        # Get current player data
+        player = await players.find_one({"_id": ObjectId(player_id)})
+        if not player:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Player not found",
+            )
+
+        refunded_amount = 0
+        refunded_team_id = None
+
+        # If player was sold, refund the team
+        if player.get("auction_status") == "sold" and player.get("sold_to_team_id") and player.get("sold_price"):
+            sold_to_team_id = player.get("sold_to_team_id")
+            sold_price = player.get("sold_price")
+
+            # Get the team and refund
+            team = await teams.find_one({"_id": ObjectId(sold_to_team_id)})
+            if team:
+                current_balance = team.get("purse_balance", 8000)
+                new_balance = current_balance + sold_price
+                await teams.update_one(
+                    {"_id": ObjectId(sold_to_team_id)},
+                    {"$set": {"purse_balance": new_balance, "updated_at": datetime.utcnow()}}
+                )
+                refunded_amount = sold_price
+                refunded_team_id = sold_to_team_id
+
+        # Delete all bids for this player
+        await bids_collection.delete_many({"player_id": player_id})
+
+        # Reset player fields
+        update_data = {
+            "auction_status": "pending",
+            "sold_price": None,
+            "sold_to_team_id": None,
+            "updated_at": datetime.utcnow(),
+        }
+
+        await players.update_one(
+            {"_id": ObjectId(player_id)},
+            {"$set": update_data}
+        )
+
+        updated_player = await players.find_one({"_id": ObjectId(player_id)})
+        result = object_id_to_string(updated_player)
+        result["refunded_amount"] = refunded_amount
+        result["refunded_team_id"] = refunded_team_id
+        return result
+
+    @staticmethod
     async def finalize_player_sale(
         player_id: str,
         team_id: str,
@@ -128,6 +192,7 @@ class AuctionController:
         db = get_database()
         players = db["players"]
         teams = db["teams"]
+        bids_collection = db["bids"]
 
         # Verify team exists and has enough balance
         team = await teams.find_one({"_id": ObjectId(team_id)})
@@ -143,6 +208,31 @@ class AuctionController:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Team does not have enough purse balance. Current balance: {current_balance}, Sale price: {sale_price}",
             )
+
+        # Check the latest/highest bid for this player
+        highest_bid = await bids_collection.find_one(
+            {"player_id": player_id},
+            sort=[("amount", -1)]
+        )
+
+        # If sale_price is less than the highest bid, throw an error
+        if highest_bid and sale_price < highest_bid.get("amount", 0):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Sale price (₹{sale_price}) cannot be less than the highest bid (₹{highest_bid.get('amount')}). Please re-open the player and start fresh.",
+            )
+
+        # If no bids exist OR sale_price doesn't match highest bid, create a new bid entry
+        if not highest_bid or sale_price != highest_bid.get("amount"):
+            bid_doc = {
+                "player_id": player_id,
+                "team_id": team_id,
+                "amount": sale_price,
+                "team_name": team.get("name"),
+                "timestamp": datetime.utcnow(),
+                "created_at": datetime.utcnow(),
+            }
+            await bids_collection.insert_one(bid_doc)
 
         # Update player status
         update_data = {

@@ -176,6 +176,11 @@ export const bidAPI = {
     const response = await apiClient.delete(`/bids/${id}`);
     return response.data.data;
   },
+
+  async deleteBidsForPlayer(playerId: string) {
+    const response = await apiClient.delete(`/bids/player/${playerId}/all`);
+    return response.data.data;
+  },
 };
 
 // ===================== AUCTION API =====================
@@ -218,6 +223,11 @@ export const auctionAPI = {
 
   async markPlayerUnsold(playerId: string) {
     const response = await apiClient.put(`/auction/players/${playerId}/unsold`);
+    return response.data.data;
+  },
+
+  async reopenPlayer(playerId: string) {
+    const response = await apiClient.post(`/auction/players/${playerId}/reopen`);
     return response.data.data;
   },
 
