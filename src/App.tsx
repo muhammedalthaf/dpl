@@ -20,6 +20,9 @@ import AuctionOrder from "./pages/AuctionOrder";
 import IconPlayers from "./pages/IconPlayers";
 import PlayerBanners from "./pages/PlayerBanners";
 import PlayerBannersPDF from "./pages/PlayerBannersPDF";
+import TeamBanners from "./pages/TeamBanners";
+import TeamBannersPDF from "./pages/TeamBannersPDF";
+import TeamSquadList from "./pages/TeamSquadList";
 
 const App = () => (
   <AuthProvider>
@@ -34,6 +37,9 @@ const App = () => (
           <Route path="/auction-summary" element={<AuctionSummary />} />
           <Route path="/player-banners" element={<PlayerBanners />} />
           <Route path="/player-banners-pdf" element={<PlayerBannersPDF />} />
+          <Route path="/team-banners" element={<TeamBanners />} />
+          <Route path="/team-banners-pdf" element={<TeamBannersPDF />} />
+          <Route path="/team-squad-list" element={<TeamSquadList />} />
           <Route path="/admin/login" element={<AdminLogin />} />
 
           {/* Protected Admin Routes */}
